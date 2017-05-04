@@ -1,10 +1,17 @@
+/**
+ * @author Steven van der Vlist
+ * @author Henri van de Munt
+ * @author Jan Willem Castelein
+ */
+
 #include <stdio.h>
 #include "includes.h"
-#include <altera_up_avalon_ps2.h>
-#include <altera_up_ps2_keyboard.h>
 
 #include <unistd.h>
 #include <fcntl.h>
+
+#include <altera_up_avalon_ps2.h>
+#include <altera_up_ps2_keyboard.h>
 
 #define         MAX_BUFFER                                      100
 
@@ -24,6 +31,12 @@ OS_EVENT * Mqueue; // message queue
 void * Qmessages[20]; // message pointers pool
 
 OS_EVENT *sem_Keyboard;
+
+/**
+ * task to receive data from the keyboard
+ *
+ * @Mqueue puts data from keyboard in message queue
+ */
 
 void taskKeyboard(void* pdata){
   INT8U err;
@@ -48,13 +61,17 @@ void taskKeyboard(void* pdata){
     }
 }
 
+/**
+ * this task takes all data from the message queue and writes it to the RS232 port
+ *
+ *
+ */
+
 void task_Send_Data(void* pdata){
   INT8U err;
   char *msg;
 
   FILE * fp;
-  char test[10];
-
   while (1) {
       msg = OSQPend(Mqueue, 0, &err);
       fp = fopen(SERIAL_PORT_NAME, "w+r");
@@ -67,17 +84,28 @@ void task_Send_Data(void* pdata){
     }
 }
 
+/**
+ * this task reads all incoming data from the RS232 port
+ *
+ *
+ */
+
 void  task_Receive_Data(void* pdata){
   while (1) {
       OSTimeDlyHMSM(0, 0, 5, 0);
+      //@TODO
     }
 }
 
-/* The main function creates two task and starts multi-tasking */
+/** The main function creates two task and starts multi-tasking
+ *
+ *
+ */
+
 int main(void){
 
   Mqueue = OSQCreate(&Qmessages[0], 20);                // Create message queue
-  sem_Keyboard = OSSemCreate(1);                                                // Sem for keyboard
+  sem_Keyboard = OSSemCreate(1);                        // Sem for keyboard
 
   OSTaskCreateExt(taskKeyboard,         NULL,   (void *)&taskKeyboard_stk[TASK_STACKSIZE-1],            taskKeyboard_PRIORITY,          taskKeyboard_PRIORITY,          taskKeyboard_stk,       TASK_STACKSIZE, NULL,   0);
   OSTaskCreateExt(task_Send_Data,       NULL,   (void *)&task_Send_Data_stk[TASK_STACKSIZE-1],          task_Send_Data_PRIORITY,        task_Send_Data_PRIORITY,        task_Send_Data_stk,     TASK_STACKSIZE, NULL,   0);
@@ -85,5 +113,5 @@ int main(void){
 
 
   OSStart();
-  return 0;
+  return 0; // this line will never reached
 }
