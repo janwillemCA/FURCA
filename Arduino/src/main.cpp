@@ -12,6 +12,11 @@ SoftwareSerial BTserial(2, 3); // RX | TX
 
 char receivedData = ' ';
 
+char speed = 100;
+unsigned int timeSetDirection;
+unsigned int timeSetDrive;
+unsigned int currentSpeed;
+
 void forwards();
 void backwards();
 void left();
@@ -24,6 +29,9 @@ void setup() {
   pinMode(direction, OUTPUT);
   BTserial.begin(115200);
   Serial.begin(9600);
+  timeSetDirection = millis();
+  timeSetDrive = millis();
+  currentSpeed = 0;
 }
 
 void loop(){
@@ -47,36 +55,50 @@ void loop(){
             case 'f':   // hold
               hold();
               break;
-            default:
-              // hold();
-              // if nothing else match, do the default
-              // default is optional
+            case 's':
+              if (BTserial.available()) {
+                  speed = BTserial.read();
+                  Serial.println(speed);
+                }
               break;
             }
         }
+
+      if (timeSetDirection + 250 <= millis()) {
+          center();
+        }
+      if (timeSetDrive + 250 <= millis()) {
+          hold();
+        }
+
     }
 }
 void forwards(){
+  timeSetDrive = millis();
   digitalWrite(drive, LOW);   // LOW forwards, HIGH backwards
   // start engine at low speed increase to higer speed
-  for (size_t i = 40; i < 120; i++) {
+  for (char i = currentSpeed; i < speed; i++) {
       analogWrite(pwmDrive, i);
-      delay(10);
+      delay(10/i);
     }
-  analogWrite(pwmDrive, 120);   // PWM Speed Control
+  analogWrite(pwmDrive, speed);   // PWM Speed Control
+  currentSpeed = speed;
 }
 
 void backwards(){
+  timeSetDrive = millis();
   digitalWrite(drive, HIGH);   // LOW forwards, HIGH backwards
   // start engine at low speed increase to higer speed
-  for (size_t i = 40; i < 120; i++) {
+  for (char i = currentSpeed; i < speed; i++) {
       analogWrite(pwmDrive, i);
-      delay(10);
+      delay(10/i);
     }
-  analogWrite(pwmDrive, 120);   // PWM Speed Control
+  analogWrite(pwmDrive, speed);   // PWM Speed Control
+  currentSpeed = speed;
 }
 
 void left(){
+  timeSetDirection = millis();
   digitalWrite(direction, HIGH); // LOW right, HIGH left
   analogWrite(pwmDirection, 255); // PWM Speed Control
 }
@@ -86,11 +108,12 @@ void center(){
 }
 
 void right(){
+  timeSetDirection = millis();
   digitalWrite(direction, LOW);   // LOW right, HIGH left
   analogWrite(pwmDirection, 255);       // PWM Speed Control
 }
 
 void hold(){
   analogWrite(pwmDrive, 0);   // PWM Speed Control
-  analogWrite(pwmDirection, 0);   // PWM Speed Control
+  currentSpeed = 0;
 }
