@@ -1,95 +1,89 @@
-/*************************************************************************
- * Copyright (c) 2004 Altera Corporation, San Jose, California, USA.      *
- * All rights reserved. All use of this software and documentation is     *
- * subject to the License Agreement located at the end of this file below.*
- **************************************************************************
- * Description:                                                           *
- * The following is a simple hello world program running MicroC/OS-II.The *
- * purpose of the design is to be a very simple application that just     *
- * demonstrates MicroC/OS-II running on NIOS II.The design doesn't account*
- * for issues such as checking system call return codes. etc.             *
- *                                                                        *
- * Requirements:                                                          *
- *   -Supported Example Hardware Platforms                                *
- *     Standard                                                           *
- *     Full Featured                                                      *
- *     Low Cost                                                           *
- *   -Supported Development Boards                                        *
- *     Nios II Development Board, Stratix II Edition                      *
- *     Nios Development Board, Stratix Professional Edition               *
- *     Nios Development Board, Stratix Edition                            *
- *     Nios Development Board, Cyclone Edition                            *
- *   -System Library Settings                                             *
- *     RTOS Type - MicroC/OS-II                                           *
- *     Periodic System Timer                                              *
- *   -Know Issues                                                         *
- *     If this design is run on the ISS, terminal output will take several*
- *     minutes per iteration.                                             *
- **************************************************************************/
-
-
 #include <stdio.h>
 #include "includes.h"
+#include <altera_up_avalon_ps2.h>
+#include <altera_up_ps2_keyboard.h>
+
 #include <unistd.h>
 #include <fcntl.h>
 
+#define         MAX_BUFFER                                      100
+
 /* Definition of Task Stacks */
-#define TASK_STACKSIZE 2048
-OS_STK task1_stk[TASK_STACKSIZE];
-OS_STK task2_stk[TASK_STACKSIZE];
+#define         TASK_STACKSIZE                          2048
+OS_STK taskKeyboard_stk                                [TASK_STACKSIZE];
+OS_STK task_Send_Data_stk                              [TASK_STACKSIZE];
+OS_STK task_Receive_Data_stk                   [TASK_STACKSIZE];
 
 /* Definition of Task Priorities */
+#define         taskKeyboard_PRIORITY                   1
+#define         task_Receive_Data_PRIORITY      2
+#define         task_Send_Data_PRIORITY         3
 
-#define TASK1_PRIORITY 1
-#define TASK2_PRIORITY 2
+/* Variables */
+OS_EVENT * Mqueue; // message queue
+void * Qmessages[20]; // message pointers pool
 
-/* Prints "Hello World" and sleeps for three seconds */
-void task1(void * pdata) {
+OS_EVENT *sem_Keyboard;
+
+void taskKeyboard(void* pdata){
+  INT8U err;
+  alt_up_ps2_dev *ps2;
+  KB_CODE_TYPE *decode_mode;
+  alt_u8 buf;
+  char ascii;
+  char buffer[MAX_BUFFER];
+
+  ps2 = alt_up_ps2_open_dev("/dev/PS2_Port");
+  alt_up_ps2_init(ps2);
   while (1) {
-
-      OSTimeDlyHMSM(0, 0, 3, 0);
+      decode_scancode(ps2,decode_mode,&buf,&ascii);
+      if (*decode_mode != 6) {
+          if (*decode_mode == 1) {
+              //printf("KEY1: %c\n",ascii);
+              err = OSQPost(Mqueue, ascii);
+            }
+        } else {
+          OSTimeDlyHMSM(0, 0, 0, 100);
+        }
     }
 }
-/* Prints "Hello World" and sleeps for three seconds */
-void task2(void * pdata) {
+
+void task_Send_Data(void* pdata){
+  INT8U err;
+  char *msg;
+
   FILE * fp;
   char test[10];
-  fp = fopen(SERIAL_PORT_NAME, "w+r");
+
   while (1) {
+      msg = OSQPend(Mqueue, 0, &err);
+      fp = fopen(SERIAL_PORT_NAME, "w+r");
       if (fp == NULL) {
           printf("\nFile /RS232 not open for writing....");
         } else {
-          fprintf(fp, "%s", "Hallo Allemaal. ");
-          if (fscanf(fp, "%s", test) == 1) {
-              printf("%s\n", test);
-            }
+          fprintf(fp, "%c", msg);
         }
-
-      OSTimeDlyHMSM(0, 0, 1, 0);
+      fclose(fp);
     }
-  fclose(fp);
 }
-/* The main function creates two task and starts multi-tasking */
-int main(void) {
-  OSTaskCreateExt(task1,
-                  NULL,
-                  (void * ) &task1_stk[TASK_STACKSIZE - 1],
-                  TASK1_PRIORITY,
-                  TASK1_PRIORITY,
-                  task1_stk,
-                  TASK_STACKSIZE,
-                  NULL,
-                  0);
-  OSTaskCreateExt(task2,
-                  NULL,
-                  (void * ) &task2_stk[TASK_STACKSIZE - 1],
-                  TASK2_PRIORITY,
-                  TASK2_PRIORITY,
-                  task2_stk,
-                  TASK_STACKSIZE,
-                  NULL,
-                  0);
-  OSStart();
 
+void  task_Receive_Data(void* pdata){
+  while (1) {
+      OSTimeDlyHMSM(0, 0, 5, 0);
+    }
+}
+
+/* The main function creates two task and starts multi-tasking */
+int main(void){
+
+  Mqueue = OSQCreate(&Qmessages[0], 20);                // Create message queue
+  sem_Keyboard = OSSemCreate(1);                                                // Sem for keyboard
+
+  OSTaskCreateExt(taskKeyboard,         NULL,   (void *)&taskKeyboard_stk[TASK_STACKSIZE-1],            taskKeyboard_PRIORITY,          taskKeyboard_PRIORITY,          taskKeyboard_stk,       TASK_STACKSIZE, NULL,   0);
+  OSTaskCreateExt(task_Send_Data,       NULL,   (void *)&task_Send_Data_stk[TASK_STACKSIZE-1],          task_Send_Data_PRIORITY,        task_Send_Data_PRIORITY,        task_Send_Data_stk,     TASK_STACKSIZE, NULL,   0);
+  OSTaskCreateExt(task_Receive_Data,    NULL,   (void *)&task_Receive_Data_stk[TASK_STACKSIZE-1],       task_Receive_Data_PRIORITY,     task_Receive_Data_PRIORITY,     task_Receive_Data_stk,  TASK_STACKSIZE, NULL,   0);
+
+
+  OSStart();
   return 0;
 }
