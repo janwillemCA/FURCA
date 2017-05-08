@@ -12,17 +12,19 @@
 
 #include <altera_up_avalon_ps2.h>
 #include <altera_up_ps2_keyboard.h>
+#include "altera_up_avalon_character_lcd.h"
 
-#define         MAX_BUFFER                                      100
+
+#define         MAX_BUFFER                      100
 
 /* Definition of Task Stacks */
-#define         TASK_STACKSIZE                          2048
-OS_STK taskKeyboard_stk                                [TASK_STACKSIZE];
-OS_STK task_Send_Data_stk                              [TASK_STACKSIZE];
-OS_STK task_Receive_Data_stk                   [TASK_STACKSIZE];
+#define         TASK_STACKSIZE                  2048
+OS_STK taskKeyboard_stk                         [TASK_STACKSIZE];
+OS_STK task_Send_Data_stk                       [TASK_STACKSIZE];
+OS_STK task_Receive_Data_stk                    [TASK_STACKSIZE];
 
 /* Definition of Task Priorities */
-#define         taskKeyboard_PRIORITY                   1
+#define         taskKeyboard_PRIORITY           1
 #define         task_Receive_Data_PRIORITY      2
 #define         task_Send_Data_PRIORITY         3
 
@@ -30,7 +32,7 @@ OS_STK task_Receive_Data_stk                   [TASK_STACKSIZE];
 OS_EVENT * Mqueue; // message queue
 void * Qmessages[20]; // message pointers pool
 
-OS_EVENT *sem_Keyboard;
+OS_EVENT *sem_RS232;
 
 /**
  * task to receive data from the keyboard
@@ -46,13 +48,15 @@ void taskKeyboard(void* pdata){
   char ascii;
   char buffer[MAX_BUFFER];
 
-  ps2 = alt_up_ps2_open_dev("/dev/PS2_Port");
+  ps2 = alt_up_ps2_open_dev(PS2_PORT_NAME);
   alt_up_ps2_init(ps2);
   while (1) {
       decode_scancode(ps2,decode_mode,&buf,&ascii);
       if (*decode_mode != 6) {
           if (*decode_mode == 1) {
-              //printf("KEY1: %c\n",ascii);
+              //alt_printf("KEY1: %c\n",ascii);
+              sprintf(buffer, "Pressed key: %c", ascii);
+              displayTextLCD(buffer);
               err = OSQPost(Mqueue, ascii);
             }
         } else {
@@ -74,13 +78,15 @@ void task_Send_Data(void* pdata){
   FILE * fp;
   while (1) {
       msg = OSQPend(Mqueue, 0, &err);
+      OSSemPend(sem_RS232, 0, &err);
       fp = fopen(SERIAL_PORT_NAME, "w+r");
       if (fp == NULL) {
-          printf("\nFile /RS232 not open for writing....");
+          alt_printf("\nFile /RS232 not open for writing....");
         } else {
           fprintf(fp, "%c", msg);
         }
       fclose(fp);
+      err = OSSemPost(sem_RS232);
     }
 }
 
@@ -91,21 +97,55 @@ void task_Send_Data(void* pdata){
  */
 
 void  task_Receive_Data(void* pdata){
+  INT8U err;
   while (1) {
-      OSTimeDlyHMSM(0, 0, 5, 0);
+      OSSemPend(sem_RS232, 0, &err);
+
+      err = OSSemPost(sem_RS232);
+      OSTimeDlyHMSM(0, 0, 0, 100);
       //@TODO
     }
 }
 
-/** The main function creates two task and starts multi-tasking
+/**
+ * Used to display text to the lcd
+ *
+ * @param data to display
+ */
+
+void displayTextLCD(char * message) {
+  // open the Character LCD port
+
+  alt_up_character_lcd_dev * char_lcd_dev;
+  char_lcd_dev = alt_up_character_lcd_open_dev(CHAR_LCD_16X2_NAME);
+  if (char_lcd_dev == NULL)
+    alt_printf("Error: could not open character LCD device\n");
+
+
+  /* Initialise the character display */
+  alt_up_character_lcd_init(char_lcd_dev);
+
+  alt_up_character_lcd_string(char_lcd_dev, message);
+
+//	/* Write in the second row */
+  alt_up_character_lcd_set_cursor_pos(char_lcd_dev, 0, 1);
+
+//	int i;
+//	for (i = 0; i < 16; i++) {
+//		alt_up_character_lcd_erase_pos(char_lcd_dev, i, 1); //erase the previous message
+//	}
+
+  alt_up_character_lcd_string(char_lcd_dev, message);
+}
+
+/** The main function creates the tasks and starts multi-tasking
  *
  *
  */
 
 int main(void){
-
   Mqueue = OSQCreate(&Qmessages[0], 20);                // Create message queue
-  sem_Keyboard = OSSemCreate(1);                        // Sem for keyboard
+  sem_RS232 = OSSemCreate(1);                        // Sem for keyboard
 
   OSTaskCreateExt(taskKeyboard,         NULL,   (void *)&taskKeyboard_stk[TASK_STACKSIZE-1],            taskKeyboard_PRIORITY,          taskKeyboard_PRIORITY,          taskKeyboard_stk,       TASK_STACKSIZE, NULL,   0);
   OSTaskCreateExt(task_Send_Data,       NULL,   (void *)&task_Send_Data_stk[TASK_STACKSIZE-1],          task_Send_Data_PRIORITY,        task_Send_Data_PRIORITY,        task_Send_Data_stk,     TASK_STACKSIZE, NULL,   0);
