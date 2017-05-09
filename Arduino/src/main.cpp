@@ -6,6 +6,8 @@
 
 #include <Arduino.h>
 #include <SoftwareSerial.h>
+#include "TimerOne.h"
+#include <stdio.h>
 
 #define PWMDRIVE 4
 #define PWMSTEER 5
@@ -25,6 +27,9 @@ SoftwareSerial BTserial(2, 3); // RX | TX
 // Connect the HC-05 RX to Arduino pin 3 TX through a voltage divider.
 
 char receivedData = ' ';
+bool switchPing = true;
+char stringL[20];
+char stringR[20];
 
 void forwards();
 void backwards();
@@ -32,6 +37,7 @@ void left();
 void center();
 void right();
 void hold();
+void processPing();
 
 void setup() {
   BTserial.begin(115200);
@@ -46,35 +52,14 @@ void setup() {
   pinMode(ECHOPINL, INPUT);
   pinMode(TRIGPINR, OUTPUT);
   pinMode(ECHOPINR, INPUT);
+
+  //timer initialization
+  Timer1.initialize(2000000);
+  Timer1.attachInterrupt(processPing);
 }
 
 void loop(){
-  long durationR, distanceR;
-  long durationL, distanceL;
-  digitalWrite(TRIGPINR, LOW);
-  digitalWrite(TRIGPINL, LOW);
-  delayMicroseconds(2);
-  digitalWrite(TRIGPINR, HIGH);
-  digitalWrite(TRIGPINL, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(TRIGPINR, LOW);
-  digitalWrite(TRIGPINL, LOW);
-  durationR = pulseIn(ECHOPINR, HIGH);
-  durationL = pulseIn(ECHOPINL, HIGH);
-  distanceR = (durationR/2) / 29.1;
-  distanceL = (durationL/2) / 29.1;
-  if (!(distanceR >= 450) || !(distanceR <= 0)) {
-      Serial.print(distanceR);
-      Serial.println("R cm");
-      BTserial.println("R");
-      BTserial.println(distanceR);
-    }
-  if (!(distanceL >= 450) || !(distanceL <= 0)) {
-      Serial.print(distanceL);
-      Serial.println("L cm");
-      BTserial.println("L");
-      BTserial.println(distanceL);
-    }
+
 
 
   if (BTserial.available()) {
@@ -136,4 +121,42 @@ void right(){
 void hold(){
   digitalWrite(FORWARDS, LOW);
   digitalWrite(BACKWARDS, LOW);
+}
+
+void processPing() {
+  if(switchPing == true) {
+    //rightsensor
+    long durationR, distanceR;
+    digitalWrite(TRIGPINR, LOW);
+    delayMicroseconds(2);
+    digitalWrite(TRIGPINR, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRIGPINR, LOW);
+    durationR = pulseIn(ECHOPINR, HIGH);
+    distanceR = (durationR/2) / 29.1;
+    if (!(distanceR >= 450) || !(distanceR <= 0)) {
+        sprintf(stringR,"R%d",distanceR);
+        Serial.println(stringR);
+        BTserial.print(stringR);
+      }
+    switchPing =  false;
+
+  } else if(switchPing == false) {
+    //leftsensor
+    long durationL, distanceL;
+    digitalWrite(TRIGPINL, LOW);
+    delayMicroseconds(2);
+    digitalWrite(TRIGPINL, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRIGPINL, LOW);
+    durationL = pulseIn(ECHOPINL, HIGH);
+    distanceL = (durationL/2) / 29.1;
+    if (!(distanceL >= 450) || !(distanceL <= 0)) {
+      sprintf(stringL,"L%d",distanceL);
+      Serial.println(stringL);
+      BTserial.print(stringL);
+      }
+    switchPing = true;
+  }
+
 }
