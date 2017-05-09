@@ -20,13 +20,11 @@
 /* Definition of Task Stacks */
 #define         TASK_STACKSIZE                  2048
 OS_STK taskKeyboard_stk                         [TASK_STACKSIZE];
-OS_STK task_Send_Data_stk                       [TASK_STACKSIZE];
-OS_STK task_Receive_Data_stk                    [TASK_STACKSIZE];
+OS_STK task_Send_Receive_Data_stk               [TASK_STACKSIZE];
 
 /* Definition of Task Priorities */
 #define         taskKeyboard_PRIORITY           1
-#define         task_Receive_Data_PRIORITY      2
-#define         task_Send_Data_PRIORITY         3
+#define         task_Send_Receive_Data_PRIORITY 2
 
 /* Variables */
 OS_EVENT * Mqueue; // message queue
@@ -67,43 +65,41 @@ void taskKeyboard(void* pdata){
 
 /**
  * this task takes all data from the message queue and writes it to the RS232 port
- *
+ * this task reads all incoming data from the RS232 port
  *
  */
 
-void task_Send_Data(void* pdata){
+void task_Send_Receive_Data(void* pdata){
   INT8U err;
   char *msg;
 
+  char test[10];
+  int distance;
+
   FILE * fp;
   while (1) {
-      msg = OSQPend(Mqueue, 0, &err);
+
       OSSemPend(sem_RS232, 0, &err);
       fp = fopen(SERIAL_PORT_NAME, "w+r");
       if (fp == NULL) {
           alt_printf("\nFile /RS232 not open for writing....");
         } else {
-          fprintf(fp, "%c", msg);
+          msg = OSQPend(Mqueue, 1, &err);
+          if (err == OS_NO_ERR) {
+              fprintf(fp, "%c", msg);
+            }
+          if (fscanf(fp, "%s", test) == 1) {
+              //  alt_printf("%s\n",test);
+              int i;
+              for (i = 0; i < 10; ++i) {
+                  printf("%c", test[i]);
+                }
+              printf("\n");
+
+            }
         }
       fclose(fp);
       err = OSSemPost(sem_RS232);
-    }
-}
-
-/**
- * this task reads all incoming data from the RS232 port
- *
- *
- */
-
-void  task_Receive_Data(void* pdata){
-  INT8U err;
-  while (1) {
-      OSSemPend(sem_RS232, 0, &err);
-
-      err = OSSemPost(sem_RS232);
-      OSTimeDlyHMSM(0, 0, 0, 100);
-      //@TODO
     }
 }
 
@@ -127,13 +123,13 @@ void displayTextLCD(char * message) {
 
   alt_up_character_lcd_string(char_lcd_dev, message);
 
-//	/* Write in the second row */
+//  /* Write in the second row */
   alt_up_character_lcd_set_cursor_pos(char_lcd_dev, 0, 1);
 
-//	int i;
-//	for (i = 0; i < 16; i++) {
-//		alt_up_character_lcd_erase_pos(char_lcd_dev, i, 1); //erase the previous message
-//	}
+//  int i;
+//  for (i = 0; i < 16; i++) {
+//    alt_up_character_lcd_erase_pos(char_lcd_dev, i, 1); //erase the previous message
+//  }
 
   alt_up_character_lcd_string(char_lcd_dev, message);
 }
@@ -148,9 +144,7 @@ int main(void){
   sem_RS232 = OSSemCreate(1);                        // Sem for keyboard
 
   OSTaskCreateExt(taskKeyboard,         NULL,   (void *)&taskKeyboard_stk[TASK_STACKSIZE-1],            taskKeyboard_PRIORITY,          taskKeyboard_PRIORITY,          taskKeyboard_stk,       TASK_STACKSIZE, NULL,   0);
-  OSTaskCreateExt(task_Send_Data,       NULL,   (void *)&task_Send_Data_stk[TASK_STACKSIZE-1],          task_Send_Data_PRIORITY,        task_Send_Data_PRIORITY,        task_Send_Data_stk,     TASK_STACKSIZE, NULL,   0);
-  OSTaskCreateExt(task_Receive_Data,    NULL,   (void *)&task_Receive_Data_stk[TASK_STACKSIZE-1],       task_Receive_Data_PRIORITY,     task_Receive_Data_PRIORITY,     task_Receive_Data_stk,  TASK_STACKSIZE, NULL,   0);
-
+  OSTaskCreateExt(task_Send_Receive_Data,       NULL,   (void *)&task_Send_Receive_Data_stk[TASK_STACKSIZE-1],          task_Send_Receive_Data_PRIORITY,        task_Send_Receive_Data_PRIORITY,        task_Send_Receive_Data_stk,     TASK_STACKSIZE, NULL,   0);
 
   OSStart();
   return 0; // this line will never reached
