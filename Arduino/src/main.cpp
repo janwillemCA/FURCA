@@ -6,6 +6,7 @@
 
 #include <Arduino.h>
 #include <SoftwareSerial.h>
+#include "TimerOne.h"
 
 #define PWMDRIVE 4
 #define PWMSTEER 5
@@ -32,6 +33,7 @@ void left();
 void center();
 void right();
 void hold();
+void processPing();
 
 void setup() {
   BTserial.begin(115200);
@@ -46,35 +48,14 @@ void setup() {
   pinMode(ECHOPINL, INPUT);
   pinMode(TRIGPINR, OUTPUT);
   pinMode(ECHOPINR, INPUT);
+
+  //timer initialization
+  Timer1.initialize(500000);
+  Timer1.attachInterrupt(processPing);
 }
 
 void loop(){
-  long durationR, distanceR;
-  long durationL, distanceL;
-  digitalWrite(TRIGPINR, LOW);
-  digitalWrite(TRIGPINL, LOW);
-  delayMicroseconds(2);
-  digitalWrite(TRIGPINR, HIGH);
-  digitalWrite(TRIGPINL, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(TRIGPINR, LOW);
-  digitalWrite(TRIGPINL, LOW);
-  durationR = pulseIn(ECHOPINR, HIGH);
-  durationL = pulseIn(ECHOPINL, HIGH);
-  distanceR = (durationR/2) / 29.1;
-  distanceL = (durationL/2) / 29.1;
-  if (!(distanceR >= 450) || !(distanceR <= 0)) {
-      Serial.print(distanceR);
-      Serial.println("R cm");
-      BTserial.println("R");
-      BTserial.println(distanceR);
-    }
-  if (!(distanceL >= 450) || !(distanceL <= 0)) {
-      Serial.print(distanceL);
-      Serial.println("L cm");
-      BTserial.println("L");
-      BTserial.println(distanceL);
-    }
+
 
 
   if (BTserial.available()) {
@@ -136,4 +117,33 @@ void right(){
 void hold(){
   digitalWrite(FORWARDS, LOW);
   digitalWrite(BACKWARDS, LOW);
+}
+
+void processPing() {
+  long durationR, distanceR;
+  long durationL, distanceL;
+  digitalWrite(TRIGPINR, LOW);
+  digitalWrite(TRIGPINL, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIGPINR, HIGH);
+  digitalWrite(TRIGPINL, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIGPINR, LOW);
+  digitalWrite(TRIGPINL, LOW);
+  durationR = pulseIn(ECHOPINR, HIGH);
+  durationL = pulseIn(ECHOPINL, HIGH);
+  distanceR = (durationR/2) / 29.1;
+  distanceL = (durationL/2) / 29.1;
+  if (!(distanceR >= 450) || !(distanceR <= 0)) {
+      Serial.print(distanceR);
+      Serial.println("R cm");
+      BTserial.println("R");
+      BTserial.println(distanceR);
+    }
+  if (!(distanceL >= 450) || !(distanceL <= 0)) {
+      Serial.print(distanceL);
+      Serial.println("L cm");
+      BTserial.println("L");
+      BTserial.println(distanceL);
+    }
 }
