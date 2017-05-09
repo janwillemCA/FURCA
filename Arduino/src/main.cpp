@@ -1,3 +1,9 @@
+/**
+ * @author Steven van der Vlist
+ * @author Henri van de Munt
+ * @author Jan Willem Castelein
+ */
+
 #include <Arduino.h>
 #include <SoftwareSerial.h>
 
@@ -43,54 +49,61 @@ void setup() {
 }
 
 void loop(){
-  while (1) {
-      long duration, distance;
-      digitalWrite(TRIGPINR, LOW); // Added this line
-      delayMicroseconds(2); // Added this line
-      digitalWrite(TRIGPINR, HIGH);
-//  delayMicroseconds(1000); - Removed this line
-      delayMicroseconds(10); // Added this line
-      digitalWrite(TRIGPINR, LOW);
-      duration = pulseIn(ECHOPINR, HIGH);
-      distance = (duration/2) / 29.1;
-      if (distance >= 450 || distance <= 0) {
-          Serial.println("Out of range");
-        }else {
-          Serial.print(distance);
-          Serial.println(" cm");
-        }
-      delay(100);
+  long durationR, distanceR;
+  long durationL, distanceL;
+  digitalWrite(TRIGPINR, LOW);
+  digitalWrite(TRIGPINL, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIGPINR, HIGH);
+  digitalWrite(TRIGPINL, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIGPINR, LOW);
+  digitalWrite(TRIGPINL, LOW);
+  durationR = pulseIn(ECHOPINR, HIGH);
+  durationL = pulseIn(ECHOPINL, HIGH);
+  distanceR = (durationR/2) / 29.1;
+  distanceL = (durationL/2) / 29.1;
+  if (!(distanceR >= 450) || !(distanceR <= 0)) {
+      Serial.print(distanceR);
+      Serial.println("R cm");
+      BTserial.println("R");
+      BTserial.println(distanceR);
+    }
+  if (!(distanceL >= 450) || !(distanceL <= 0)) {
+      Serial.print(distanceL);
+      Serial.println("L cm");
+      BTserial.println("L");
+      BTserial.println(distanceL);
     }
 
-  while (1) {
-      if (BTserial.available()) {
-          receivedData = BTserial.read();
-          Serial.write(receivedData);
-          switch (receivedData) {
-            case 'W':
-              forwards();
-              break;
-            case 'A':
-              left();
-              break;
-            case 'S':
-              backwards();
-              break;
-            case 'D':
-              right();
-              break;
-            case 'H':   // hold
-              hold();
-              break;
-            case 'C':     // hold
-              center();
-              break;
-            default:
-              // hold();
-              // if nothing else match, do the default
-              // default is optional
-              break;
-            }
+
+  if (BTserial.available()) {
+      receivedData = BTserial.read();
+      Serial.write(receivedData);
+      switch (receivedData) {
+        case 'W':
+          forwards();
+          break;
+        case 'A':
+          left();
+          break;
+        case 'S':
+          backwards();
+          break;
+        case 'D':
+          right();
+          break;
+        case 'H':         // hold
+          hold();
+          break;
+        case 'C':           // hold
+          center();
+          break;
+        default:
+          // hold();
+          // if nothing else match, do the default
+          // default is optional
+          break;
         }
     }
 }
