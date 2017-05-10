@@ -5,6 +5,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include "includes.h"
 
 #include <unistd.h>
@@ -73,14 +74,16 @@ void task_Send_Receive_Data(void* pdata){
   INT8U err;
   char *msg;
 
-  char test[10];
-  int distance;
+  char incomingData[50];
+
+  int distanceLeft;
+  int distanceRight;
 
   FILE * fp;
   while (1) {
 
       OSSemPend(sem_RS232, 0, &err);
-      fp = fopen(SERIAL_PORT_NAME, "w+r");
+      fp = fopen(SERIAL_PORT_NAME, "r+");
       if (fp == NULL) {
           alt_printf("\nFile /RS232 not open for writing....");
         } else {
@@ -88,14 +91,44 @@ void task_Send_Receive_Data(void* pdata){
           if (err == OS_NO_ERR) {
               fprintf(fp, "%c", msg);
             }
-          if (fscanf(fp, "%s", test) == 1) {
-              //  alt_printf("%s\n",test);
-              int i;
-              for (i = 0; i < 10; ++i) {
-                  printf("%c", test[i]);
-                }
-              printf("\n");
+          if (fscanf(fp, "%s", incomingData) == 1) {
+              int pos = 0;
+              int startPos;
+              int temp;
 
+              startPos = pos;
+              while (incomingData[pos] != '\0' && incomingData[pos] >= 'A' && incomingData[pos] <= 'Z') {
+                  pos++;
+                }
+              char dD[10];             // dataDescription
+              temp = 0;
+              while (startPos < pos) {
+                  dD[temp] = incomingData[startPos];
+                  startPos++;
+                  temp++;
+                }
+              dD[temp] = '\0';
+              startPos = pos;
+              while ((incomingData[pos] != '\0') && incomingData[pos] >= '0' && incomingData[pos] <= '9') {
+                  pos++;
+                }
+              char d[10];             // data
+              temp = 0;
+              while (startPos < pos) {
+                  d[temp] = incomingData[startPos];
+                  startPos++;
+                  temp++;
+                }
+              d[temp] = '\0';
+              if (dD[0] == 'L') {
+                  distanceLeft = atoi(d);
+                }
+              if (dD[0] == 'R') {
+                  distanceRight = atoi(d);
+                }
+              printf("R: %d, L: %d", distanceRight, distanceLeft);
+
+              printf("\n");
             }
         }
       fclose(fp);
