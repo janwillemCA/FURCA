@@ -32,13 +32,11 @@ OS_STK controlPingOutput_stk               [TASK_STACKSIZE];
 
 /* Variables */
 OS_EVENT * KeyboardQueue; // message queue
-OS_EVENT * PingLeftQueue; // Queue for processing control data
-OS_EVENT * PingRightQueue; // Queue for processing control data
+OS_EVENT * PingFrontQueue; // Queue for processing control data
 
 
 void * KeyboardMessages[20]; // message pointers pool
-void * PingLeftMessages[50];
-void * PingRightMessages[50];
+void * PingFrontMessages[50];
 
 OS_EVENT *sem_RS232;
 
@@ -68,7 +66,7 @@ void taskKeyboard(void* pdata){
               err = OSQPost(KeyboardQueue, ascii);
             }
         } else {
-          OSTimeDlyHMSM(0, 0, 0, 300);
+          OSTimeDlyHMSM(0, 0, 0, 100);
         }
     }
 }
@@ -85,8 +83,7 @@ void task_Send_Receive_Data(void* pdata){
 
   char incomingData[50];
 
-  int distanceLeft;
-  int distanceRight;
+  int distanceFront;
 
   FILE * fp;
   while (1) {
@@ -130,19 +127,13 @@ void task_Send_Receive_Data(void* pdata){
                   temp++;
                 }
               d[temp] = '\0';
-              if (dD[0] == 'R') {
-                  distanceRight = atoi(d);
-                  //printf("%d\n", distanceRight);
-                  err = OSQPost(PingRightQueue, distanceRight);
-                  OSTimeDlyHMSM(0, 0, 0, 25);
-                }
-              if (dD[0] == 'L') {
-                  distanceLeft = atoi(d);
-                  //printf("%d\n", distanceLeft);
-                  err = OSQPost(PingLeftQueue, distanceLeft);
-                  OSTimeDlyHMSM(0, 0, 0, 25);
+              if (dD[0] == 'M') {
+                  distanceFront = atoi(d);
+                  //printf("%d\n", distanceFront);
+                  err = OSQPost(PingFrontQueue, distanceFront);
                 }
             }
+          OSTimeDlyHMSM(0, 0, 0, 50);
         }
       fclose(fp);
       err = OSSemPost(sem_RS232);
@@ -155,20 +146,15 @@ void controlPingOutput(void *pdata){
   INT8U err;
   int left;
   int right;
+  int front;
   while (1) {
       // check right
-      OSTimeDlyHMSM(0, 0, 0, 25);
-      right = OSQPend(PingRightQueue, 0, &err);
-      printf("pend right %d\n", right);
-      if (right < 100 && right > 0)
+      OSTimeDlyHMSM(0, 0, 0, 50);
+      front = OSQPend(PingFrontQueue, 0, &err);
+      printf("pend front %d\n", front);
+      if (front < 100 && front > 0)
         err = OSQPost(KeyboardQueue, 'H'); // send hold
 
-      // check left
-      OSTimeDlyHMSM(0, 0, 0, 25);
-      left = OSQPend(PingLeftQueue, 0, &err);
-      printf("pend left %d\n", left);
-      if (left < 100 && left > 0)
-        err = OSQPost(KeyboardQueue, 'H'); // send hold
 
     }
 
@@ -201,7 +187,6 @@ void displayTextLCD(char * message) {
 //  for (i = 0; i < 16; i++) {
 //    alt_up_character_lcd_erase_pos(char_lcd_dev, i, 1); //erase the previous message
 //  }
-
   alt_up_character_lcd_string(char_lcd_dev, message);
 }
 
@@ -212,8 +197,8 @@ void displayTextLCD(char * message) {
 
 int main(void){
   KeyboardQueue = OSQCreate(&KeyboardMessages[0], 20);                // Create message queue
-  PingLeftQueue = OSQCreate(&PingLeftMessages[0], 20);                // Create message queue
-  PingRightQueue = OSQCreate(&PingRightMessages[0], 20);                // Create message queue
+  PingFrontQueue = OSQCreate(&PingFrontMessages[0], 20);                // Create message queue
+  //PingRightQueue = OSQCreate(&PingRightMessages[0], 20);                // Create message queue
 
   sem_RS232 = OSSemCreate(1);                        // Sem for keyboard
 
