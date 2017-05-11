@@ -68,7 +68,7 @@ void taskKeyboard(void* pdata){
               err = OSQPost(KeyboardQueue, ascii);
             }
         } else {
-          OSTimeDlyHMSM(0, 0, 0, 100);
+          OSTimeDlyHMSM(0, 0, 0, 300);
         }
     }
 }
@@ -130,49 +130,47 @@ void task_Send_Receive_Data(void* pdata){
                   temp++;
                 }
               d[temp] = '\0';
-              if (dD[0] == 'L') {
-                  distanceLeft = atoi(d);
-                  //printf("%d\n", distanceLeft);
-                  err = OSQPost(PingLeftQueue, distanceLeft);
-                }
               if (dD[0] == 'R') {
                   distanceRight = atoi(d);
                   //printf("%d\n", distanceRight);
                   err = OSQPost(PingRightQueue, distanceRight);
-              }
-
+                  OSTimeDlyHMSM(0, 0, 0, 25);
+                }
+              if (dD[0] == 'L') {
+                  distanceLeft = atoi(d);
+                  //printf("%d\n", distanceLeft);
+                  err = OSQPost(PingLeftQueue, distanceLeft);
+                  OSTimeDlyHMSM(0, 0, 0, 25);
+                }
             }
         }
       fclose(fp);
       err = OSSemPost(sem_RS232);
-      OSTimeDlyHMSM(0, 0, 0, 100);
 
     }
 }
 
-void controlPingOutput(void *pdata)
-{
+void controlPingOutput(void *pdata){
 
-	INT8U err;
-	int left;
-	int right;
-	while(1)
-	{
+  INT8U err;
+  int left;
+  int right;
+  while (1) {
+      // check right
+      OSTimeDlyHMSM(0, 0, 0, 25);
+      right = OSQPend(PingRightQueue, 0, &err);
+      printf("pend right %d\n", right);
+      if (right < 100 && right > 0)
+        err = OSQPost(KeyboardQueue, 'H'); // send hold
 
-		right = OSQPend(PingRightQueue, 0, &err);
-		printf("pend right %d\n", right);
-		if(right < 100)
-			err = OSQPost(KeyboardQueue, 'H');
+      // check left
+      OSTimeDlyHMSM(0, 0, 0, 25);
+      left = OSQPend(PingLeftQueue, 0, &err);
+      printf("pend left %d\n", left);
+      if (left < 100 && left > 0)
+        err = OSQPost(KeyboardQueue, 'H'); // send hold
 
-		left = OSQPend(PingLeftQueue, 0, &err);
-		printf("pend left %d\n", left);
-		if(left < 100)
-			err = OSQPost(KeyboardQueue, 'H');
-
-
-
-		OSTimeDlyHMSM(0, 0, 0, 100);
-	}
+    }
 
 }
 
