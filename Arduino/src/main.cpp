@@ -16,10 +16,10 @@
 #define LEFT 8
 #define RIGHT 9
 
-#define TRIGPINR 13 // right seen from driver position
-#define ECHOPINR 12
-#define TRIGPINL 11 // left seen from driver position
-#define ECHOPINL 10
+#define TRIGPINR 11 // right seen from driver position
+#define ECHOPINR 10
+#define TRIGPINL 13 // left seen from driver position
+#define ECHOPINL 12
 
 
 SoftwareSerial BTserial(2, 3); // RX | TX
@@ -28,6 +28,7 @@ SoftwareSerial BTserial(2, 3); // RX | TX
 
 char receivedData = ' ';
 bool switchPing = true;
+bool holdcar = false;
 char stringL[20];
 char stringR[20];
 
@@ -44,7 +45,7 @@ void setup() {
   Serial.begin(9600);
 
   // engine control
-  analogWrite(PWMDRIVE, 150);   // PWM Speed Control
+  analogWrite(PWMDRIVE, 80);   // PWM Speed Control
   analogWrite(PWMSTEER, 255);   // PWM Steer Control
 
   // sensor Control
@@ -54,7 +55,7 @@ void setup() {
   pinMode(ECHOPINR, INPUT);
 
   //timer initialization
-  Timer1.initialize(2000000);
+  Timer1.initialize(100000);
   Timer1.attachInterrupt(processPing);
 }
 
@@ -94,6 +95,7 @@ void loop(){
 }
 
 void forwards(){
+  holdcar = false;
   digitalWrite(FORWARDS, HIGH);
   digitalWrite(BACKWARDS, LOW);
 }
@@ -119,8 +121,17 @@ void right(){
 }
 
 void hold(){
-  digitalWrite(FORWARDS, LOW);
-  digitalWrite(BACKWARDS, LOW);
+  if(holdcar == false) {
+    analogWrite(PWMDRIVE, 255);   // PWM Speed Control
+    digitalWrite(FORWARDS, LOW);
+    digitalWrite(BACKWARDS, HIGH);
+    delay(500);
+    digitalWrite(BACKWARDS, LOW);
+    analogWrite(PWMDRIVE, 80);   // PWM Speed Control
+    holdcar = true;
+  }
+
+
 }
 
 void processPing() {
