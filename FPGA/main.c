@@ -22,14 +22,23 @@
 #define         TASK_STACKSIZE                  2048
 OS_STK taskKeyboard_stk                         [TASK_STACKSIZE];
 OS_STK task_Send_Receive_Data_stk               [TASK_STACKSIZE];
+OS_STK controlPingOutput_stk               [TASK_STACKSIZE];
+
 
 /* Definition of Task Priorities */
 #define         taskKeyboard_PRIORITY           1
 #define         task_Send_Receive_Data_PRIORITY 2
+#define         controlPingOutput_PRIORITY 3
 
 /* Variables */
-OS_EVENT * Mqueue; // message queue
-void * Qmessages[20]; // message pointers pool
+OS_EVENT * KeyboardQueue; // message queue
+OS_EVENT * PingLeftQueue; // Queue for processing control data
+OS_EVENT * PingRightQueue; // Queue for processing control data
+
+
+void * KeyboardMessages[20]; // message pointers pool
+void * PingLeftMessages[50];
+void * PingRightMessages[50];
 
 OS_EVENT *sem_RS232;
 
@@ -56,7 +65,7 @@ void taskKeyboard(void* pdata){
               //alt_printf("KEY1: %c\n",ascii);
               sprintf(buffer, "Pressed key: %c", ascii);
               displayTextLCD(buffer);
-              err = OSQPost(Mqueue, ascii);
+              err = OSQPost(KeyboardQueue, ascii);
             }
         } else {
           OSTimeDlyHMSM(0, 0, 0, 100);
@@ -87,9 +96,10 @@ void task_Send_Receive_Data(void* pdata){
       if (fp == NULL) {
           alt_printf("\nFile /RS232 not open for writing....");
         } else {
-          msg = OSQPend(Mqueue, 1, &err);
+          msg = OSQPend(KeyboardQueue, 1, &err);
           if (err == OS_NO_ERR) {
               fprintf(fp, "%c", msg);
+              printf("%c", msg);
             }
           if (fscanf(fp, "%s", incomingData) == 1) {
               int pos = 0;
@@ -122,18 +132,48 @@ void task_Send_Receive_Data(void* pdata){
               d[temp] = '\0';
               if (dD[0] == 'L') {
                   distanceLeft = atoi(d);
+                  //printf("%d\n", distanceLeft);
+                  err = OSQPost(PingLeftQueue, distanceLeft);
                 }
               if (dD[0] == 'R') {
                   distanceRight = atoi(d);
-                }
-              printf("R: %d, L: %d", distanceRight, distanceLeft);
+                  //printf("%d\n", distanceRight);
+                  err = OSQPost(PingRightQueue, distanceRight);
+              }
 
-              printf("\n");
             }
         }
       fclose(fp);
       err = OSSemPost(sem_RS232);
+      OSTimeDlyHMSM(0, 0, 0, 100);
+
     }
+}
+
+void controlPingOutput(void *pdata)
+{
+
+	INT8U err;
+	int left;
+	int right;
+	while(1)
+	{
+
+		right = OSQPend(PingRightQueue, 0, &err);
+		printf("pend right %d\n", right);
+		if(right < 100)
+			err = OSQPost(KeyboardQueue, 'H');
+
+		left = OSQPend(PingLeftQueue, 0, &err);
+		printf("pend left %d\n", left);
+		if(left < 100)
+			err = OSQPost(KeyboardQueue, 'H');
+
+
+
+		OSTimeDlyHMSM(0, 0, 0, 100);
+	}
+
 }
 
 /**
@@ -173,11 +213,15 @@ void displayTextLCD(char * message) {
  */
 
 int main(void){
-  Mqueue = OSQCreate(&Qmessages[0], 20);                // Create message queue
+  KeyboardQueue = OSQCreate(&KeyboardMessages[0], 20);                // Create message queue
+  PingLeftQueue = OSQCreate(&PingLeftMessages[0], 20);                // Create message queue
+  PingRightQueue = OSQCreate(&PingRightMessages[0], 20);                // Create message queue
+
   sem_RS232 = OSSemCreate(1);                        // Sem for keyboard
 
   OSTaskCreateExt(taskKeyboard,         NULL,   (void *)&taskKeyboard_stk[TASK_STACKSIZE-1],            taskKeyboard_PRIORITY,          taskKeyboard_PRIORITY,          taskKeyboard_stk,       TASK_STACKSIZE, NULL,   0);
   OSTaskCreateExt(task_Send_Receive_Data,       NULL,   (void *)&task_Send_Receive_Data_stk[TASK_STACKSIZE-1],          task_Send_Receive_Data_PRIORITY,        task_Send_Receive_Data_PRIORITY,        task_Send_Receive_Data_stk,     TASK_STACKSIZE, NULL,   0);
+  OSTaskCreateExt(controlPingOutput,       NULL,   (void *)&controlPingOutput_stk[TASK_STACKSIZE-1],          controlPingOutput_PRIORITY,        controlPingOutput_PRIORITY,        controlPingOutput_stk,     TASK_STACKSIZE, NULL,   0);
 
   OSStart();
   return 0; // this line will never reached
