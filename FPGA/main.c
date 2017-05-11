@@ -87,7 +87,6 @@ void task_Send_Receive_Data(void* pdata){
 
   FILE * fp;
   while (1) {
-
       OSSemPend(sem_RS232, 0, &err);
       fp = fopen(SERIAL_PORT_NAME, "r+");
       if (fp == NULL) {
