@@ -136,7 +136,6 @@ void task_Send_Receive_Data(void* pdata){
         }
       fclose(fp);
       err = OSSemPost(sem_RS232);
-
     }
 }
 
