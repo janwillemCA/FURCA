@@ -63,8 +63,8 @@ void setup() {
   analogWrite(PWMSTEER, PWMSTEERVALUE);   // PWM Steer Control
 
   // sensor Control
-  //pinMode(TRIGPINL, OUTPUT);
-  //pinMode(ECHOPINL, INPUT);
+  pinMode(TRIGPINL, OUTPUT);
+  pinMode(ECHOPINL, INPUT);
   pinMode(TRIGPINR, OUTPUT);
   pinMode(ECHOPINR, INPUT);
 
