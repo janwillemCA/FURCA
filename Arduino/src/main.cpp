@@ -34,9 +34,13 @@ bool switchPing = true;
 bool holdcar = false;
 char stringL[20];
 char stringR[20];
-int lastMeasure;
-int measureCnt = 0;
-int measureDifference = 0;
+
+//sensor variables
+int lastMeasure[3];
+int measureCnt[3];
+int measureDifference[3];
+
+
 int forwardsCounter = 0;
 bool forwardsStart = false;
 
@@ -48,6 +52,7 @@ void right();
 void hold();
 void processPing();
 void timerInterrupt();
+void improveData(int distance, int sensor);
 
 void setup() {
   BTserial.begin(115200);
@@ -159,8 +164,58 @@ void timerInterrupt() {
   }
 }
 
+void improveData(int distance, int sensor) {
+  //sensor 0 = left, sensor 1 = right, sensor 2 = empty
+  if (distance <= 120) {
+      if(measureCnt[sensor] == 0) {
+        lastMeasure[sensor] = distance;
+        measureCnt[sensor]++;
+      }
+      if(measureCnt[sensor] >= 1 && measureCnt[sensor] <4) {
+        if(distance > lastMeasure[sensor]) {
+          measureDifference[sensor] = distance - lastMeasure[sensor];
+        } else {
+          measureDifference[sensor] = lastMeasure[sensor] - distance;
+        }
+
+        //Serial.print("lastMeasurediff sensor ");Serial.print(sensor);Serial.print(":");
+        //Serial.println(measureDifference[sensor]);
+
+        if(measureDifference[sensor] <= 20) {
+          lastMeasure[sensor] = distance;
+          measureCnt[sensor]++;
+        } else if (measureDifference[sensor] > 20) {
+          measureCnt[sensor] = 0;
+          //Serial.println("set to 0");
+        }
+
+      }
+
+      if(measureCnt[sensor] == 4) {
+        if(distance != 0) {
+          if(sensor == 0) {
+            //Serial.println("left");
+            sprintf(stringL,"L%d",distance);
+            //Serial.println(stringL);
+            BTserial.print(stringL);
+          }else if(sensor == 1){
+            //Serial.println("right");
+            sprintf(stringL,"R%d",distance);
+            //Serial.println(stringL);
+            BTserial.print(stringL);
+          }else {
+
+          }
+        }
+        measureCnt[sensor] = 0;
+      }
+
+    }
+}
+
 void processPing() {
-  //if(switchPing == true) {
+  if(switchPing == true) {
+
     //rightsensor
     long durationR, distanceR;
     digitalWrite(TRIGPINR, LOW);
@@ -170,61 +225,24 @@ void processPing() {
     digitalWrite(TRIGPINR, LOW);
     durationR = pulseIn(ECHOPINR, HIGH);
     distanceR = (durationR/2) / 29.1;
-    //Serial.println(distanceR);
-    if (distanceR <= 120) {
-        if(measureCnt == 0) {
-          lastMeasure = distanceR;
-          measureCnt++;
-        }
-        if(measureCnt >= 1 && measureCnt <4) {
-          if(distanceR > lastMeasure) {
-            measureDifference = distanceR - lastMeasure;
-          } else {
-            measureDifference = lastMeasure - distanceR;
-          }
+    switchPing =  false;
 
-          Serial.print("lastMeasurediff: ");
-          Serial.println(measureDifference);
-          //Serial.println(measureCnt);
+    improveData(distanceR, 1);
 
-          if(measureDifference <= 20) {
-            lastMeasure = distanceR;
-            measureCnt++;
-          } else if (measureDifference > 20) {
-            measureCnt = 0;
-            //Serial.println("set to 0");
-          }
-
-        }
-
-        if(measureCnt == 4) {
-          if(distanceR != 0) {
-            sprintf(stringR,"M%d",distanceR);
-            Serial.println(stringR);
-            BTserial.print(stringR);
-          }
-          measureCnt = 0;
-        }
-
-      }
-    //switchPing =  false;
-
-  //} else if(switchPing == false) {
+  } else if(switchPing == false) {
     //leftsensor
-    // long durationL, distanceL;
-    // digitalWrite(TRIGPINL, LOW);
-    // delayMicroseconds(2);
-    // digitalWrite(TRIGPINL, HIGH);
-    // delayMicroseconds(10);
-    // digitalWrite(TRIGPINL, LOW);
-    // durationL = pulseIn(ECHOPINL, HIGH);
-    // distanceL = (durationL/2) / 29.1;
-    // if (distanceL <= 120) {
-    //   sprintf(stringL,"L%d",distanceL);
-    //   Serial.println(stringL);
-    //   BTserial.print(stringL);
-    //   }
-    // switchPing = true;
-  //}
+    long durationL, distanceL;
+    digitalWrite(TRIGPINL, LOW);
+    delayMicroseconds(2);
+    digitalWrite(TRIGPINL, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRIGPINL, LOW);
+    durationL = pulseIn(ECHOPINL, HIGH);
+    distanceL = (durationL/2) / 29.1;
+    switchPing = true;
+    Serial.println(distanceL);
+
+    improveData(distanceL, 0);
+  }
 
 }
