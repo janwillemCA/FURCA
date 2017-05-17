@@ -16,7 +16,7 @@
 #define LEFT 8
 #define RIGHT 9
 
-#define PWMDRIVEVALUE 120
+//#define PWMDRIVEVALUE 120
 #define PWMSTEERVALUE 255
 
 #define TRIGPINR 11 // right seen from driver position
@@ -35,6 +35,7 @@ bool holdcar = false;
 char stringL[20];
 char stringR[20];
 bool mode = 1; //1 = autonomous. 0 = manual.
+int PWMDRIVEVALUE = 120;
 
 //sensor variables
 int lastMeasure[3];
@@ -55,7 +56,10 @@ bool backwardsStart = false;
 
 //time control brakes
 int brakeCounter = 0;
+int rawIntData[3];
+int rawIntDataCounter = 0;
 bool brakeStart = false;
+bool disableSwitch = false;
 
 void forwards();
 void backwards();
@@ -93,40 +97,61 @@ void loop(){
   if (BTserial.available()) {
       receivedData = BTserial.read();
       Serial.write(receivedData);
-      switch (receivedData) {
-        case 'W':
-          forwards();
-          break;
-        case 'A':
-          left();
-          break;
-        case 'S':
-          backwards();
-          break;
-        case 'D':
-          right();
-          break;
-        case 'H':         // hold
-          hold();
-          break;
-        case 'C':           // hold
-          center();
-          break;
-        case 'Z':
-          //mode != mode;
-          if(mode)
-            mode = 0;
-          else
-            mode = 1;
-          //Serial.println(mode);
+      if(disableSwitch == false) {
+        switch (receivedData) {
+          case 'W':
+            forwards();
+            break;
+          case 'A':
+            left();
+            break;
+          case 'S':
+            backwards();
+            break;
+          case 'D':
+            right();
+            break;
+          case 'H':         // hold
+            hold();
+            break;
+          case 'C':           // hold
+            center();
+            break;
+          case 'Z':
+            //mode != mode;
+            if(mode)
+              mode = 0;
+            else
+              mode = 1;
+            //Serial.println(mode);
 
-          break;
-        default:
-          // hold();
-          // if nothing else match, do the default
-          // default is optional
-          break;
+            break;
+          case 'P':
+            disableSwitch = true;
+            break;
+          default:
+            // hold();
+            // if nothing else match, do the default
+            // default is optional
+            break;
+          }
+      } else {
+        if(rawIntDataCounter < 3) {
+          if(receivedData >= 48 && receivedData <= 57) {
+            rawIntData[rawIntDataCounter] = receivedData - '0';
+            rawIntDataCounter++;
+          }
+        } else {
+          rawIntDataCounter = 0;
+          disableSwitch = false;
+          int finalData = rawIntData[2] + rawIntData[1]*10 + rawIntData[0]*100;
+          if(finalData <= 255) {
+            PWMDRIVEVALUE = finalData;
+          }
+          Serial.print("PWMDRIVEVALUE:");
+          Serial.println(PWMDRIVEVALUE);
         }
+      }
     }
 }
 
@@ -146,7 +171,9 @@ void backwards(){
 }
 
 void left(){
-  steeringStart = true;
+  if(mode == 0) {
+    steeringStart = true;
+  }
   digitalWrite(LEFT, HIGH);
   digitalWrite(RIGHT, LOW);
 }
@@ -157,10 +184,13 @@ void center(){
 }
 
 void right(){
-  steeringStart = true;
+  if(mode == 0) {
+    steeringStart = true;
+  }
   digitalWrite(RIGHT, HIGH);
   digitalWrite(LEFT, LOW);
 }
+
 
 void hold(){
   if(holdcar == false) {
@@ -183,7 +213,7 @@ void timerInterrupt() {
 //Serial.println(steeringStart);
 timingControl(&forwardsStart,&forwardsCounter, 15, 1);
 timingControl(&backwardsStart,&backwardsCounter, 15, 1);
-timingControl(&steeringStart,&steeringCounter, 7, 2);
+timingControl(&steeringStart,&steeringCounter, 9, 2);
 timingControl(&brakeStart,&brakeCounter, 10,3);
 
   // if(forwardsStart == true){
