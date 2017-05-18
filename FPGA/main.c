@@ -134,16 +134,16 @@ void task_Send_Receive_Data(void* pdata){
 
               if (dD[0] == 'L') {
                   int distanceLeft = atoi(d);
-                 // printf("%d\n", distanceLeft);
+                  // printf("%d\n", distanceLeft);
                   err = OSQPost(PingLeftQueue, distanceLeft);
                 }
               if (dD[0] == 'R') {
-        int distanceRight = atoi(d);
-        //printf("%d\n", distanceRight);
-        err = OSQPost(PingRightQueue, distanceRight);
-        }
+                  int distanceRight = atoi(d);
+                  //printf("%d\n", distanceRight);
+                  err = OSQPost(PingRightQueue, distanceRight);
+                }
             }
-          OSTimeDlyHMSM(0, 0, 0, 50);
+          OSTimeDlyHMSM(0, 0, 0, 15);
         }
       fclose(fp);
       err = OSSemPost(sem_RS232);
@@ -157,18 +157,16 @@ void controlPingOutput(void *pdata){
   int right;
   while (1) {
       // check right
-      OSTimeDlyHMSM(0, 0, 0, 25);
       left = OSQPend(PingLeftQueue, 0, &err);
       printf("left %d\n", left);
-      if (left < 100 && left > 0)
+      if (left < 50 && left > 0)
         err = OSQPost(KeyboardQueue, 'H'); // send hold
 
       // check right
-    OSTimeDlyHMSM(0, 0, 0, 25);
-    right = OSQPend(PingRightQueue, 0, &err);
-    printf("right %d\n", right);
-    if (right < 100 && right > 0)
-    err = OSQPost(KeyboardQueue, 'H'); // send hold
+      right = OSQPend(PingRightQueue, 0, &err);
+      printf("right %d\n", right);
+      if (right < 50 && right > 0)
+        err = OSQPost(KeyboardQueue, 'H'); // send hold
     }
 
 }
