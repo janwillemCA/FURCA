@@ -16,7 +16,15 @@
 #include <altera_up_ps2_keyboard.h>
 #include "altera_up_avalon_character_lcd.h"
 
-
+/* Definition of plotting a cirkle */
+#define 		WIDTH 60
+#define 		HEIGHT 20
+#define 		X WIDTH/2
+#define 		Y HEIGHT/2
+#define 		XMAX WIDTH-X-1
+#define 		XMIN -(WIDTH-X)
+#define 		YMAX HEIGHT-Y
+#define 		YMIN -(HEIGHT-Y)+1
 #define         MAX_BUFFER                      100
 
 /* Definition of Task Stacks */
@@ -25,22 +33,10 @@ OS_STK taskKeyboard_stk                         [TASK_STACKSIZE];
 OS_STK task_Send_Receive_Data_stk               [TASK_STACKSIZE];
 OS_STK controlPingOutput_stk               [TASK_STACKSIZE];
 
-
 /* Definition of Task Priorities */
 #define         taskKeyboard_PRIORITY           1
 #define         task_Send_Receive_Data_PRIORITY 2
 #define         controlPingOutput_PRIORITY 3
-
-/* Definition of plotting a cirkle */
-#define WIDTH 60
-#define HEIGHT 20
-#define X WIDTH/2
-#define Y HEIGHT/2
-#define XMAX WIDTH-X-1
-#define XMIN -(WIDTH-X)
-#define YMAX HEIGHT-Y
-#define YMIN -(HEIGHT-Y)+1
-
 
 /* Variables */
 OS_EVENT * KeyboardQueue; // message queue
@@ -68,9 +64,8 @@ char middle[3] = "130";
  *
  * @Mqueue puts data from keyboard in message queue
  */
-
-
-void taskKeyboard(void* pdata){
+void taskKeyboard(void* pdata)
+{
   INT8U err;
   alt_up_ps2_dev *ps2;
   KB_CODE_TYPE *decode_mode;
@@ -101,7 +96,8 @@ void taskKeyboard(void* pdata){
  *
  */
 
-void task_Send_Receive_Data(void* pdata){
+void task_Send_Receive_Data(void* pdata)
+{
   INT8U err;
   char *msg;
 
@@ -169,8 +165,8 @@ void task_Send_Receive_Data(void* pdata){
     }
 }
 
-void controlPingOutput(void *pdata){
-
+void controlPingOutput(void *pdata)
+{
   INT8U err;
   int left;
   int right;
@@ -187,7 +183,6 @@ void controlPingOutput(void *pdata){
       if (right < 50 && right > 0)
         err = OSQPost(KeyboardQueue, 'H'); // send hold
     }
-
 }
 
 /**
@@ -196,7 +191,8 @@ void controlPingOutput(void *pdata){
  * @param data to display
  */
 
-void displayTextLCD(char * message) {
+void displayTextLCD(char * message) 
+{
   // open the Character LCD port
 
   alt_up_character_lcd_dev * char_lcd_dev;
@@ -231,8 +227,7 @@ void VGA_text(int x, int y, char * text_ptr)
 
 	/* assume that the text string fits on one line */
 	offset = (y << 7) + x;
-	while ( *(text_ptr) )
-	{
+	while ( *(text_ptr) ){
 		*(character_buffer + offset) = *(text_ptr);	// write to the character buffer
 		++text_ptr;
 		++offset;
@@ -248,8 +243,7 @@ void VGA_box(int x1, int y1, int x2, int y2, short pixel_color)
   	volatile short * pixel_buffer = (short *) 0x08000000;	// VGA pixel buffer
 
 	/* assume that the box coordinates are valid */
-	for (row = y1; row <= y2; row++)
-	{
+	for (row = y1; row <= y2; row++){
 		col = x1;
 		while (col <= x2)
 		{
@@ -266,45 +260,40 @@ int circle(int x, int y, int radius)
     int xsqrt, rsqrt,ysum, ypositive;
     float xpos,xleft;
     xleft = x;
-    for(xpos = x; xpos <= radius+x; xpos+=0.1)
-    {
+    for(xpos = x; xpos <= radius+x; xpos+=0.1) {
     	xleft-=0.1;
     	xsqrt = pow(xpos-x,2);
     	rsqrt = pow(radius,2);
-
+		
     	ysum = sqrt(abs(rsqrt - xsqrt));
     	ypositive = radius - ysum;
 
-
-    	printf("X; %f, Y: %d\n", xpos, ysum+y);
     	VGA_box (xpos, ysum+y,xpos + 2,ysum+y + 2, 0x333333);
     	VGA_box (xleft, ysum+y,xleft + 2,ysum+y + 2, 0x333333);
     	VGA_box (xpos, ypositive+y-radius,xpos + 2,ypositive+y-radius+ 2, 0x333333);
     	VGA_box (xleft, ypositive+y-radius,xleft + 2,ypositive+y-radius+ 2, 0x333333);
-
-
     }
     return(1);
 }
 
-int main(void){
-  KeyboardQueue = OSQCreate(&KeyboardMessages[0], 20);                // Create message queue
-//  PingFrontQueue = OSQCreate(&PingFrontMessages[0], 20);                // Create message queue
+int main(void)
+{
+	
+	KeyboardQueue = OSQCreate(&KeyboardMessages[0], 20);                // Create message queue
+	//  PingFrontQueue = OSQCreate(&PingFrontMessages[0], 20);                // Create message queue
 
-  PingLeftQueue = OSQCreate(&PingLeftMessages[0], 20);                // Create message queue
-  PingRightQueue = OSQCreate(&PingRightMessages[0], 20);                // Create message queue
+	PingLeftQueue = OSQCreate(&PingLeftMessages[0], 20);                // Create message queue
+	PingRightQueue = OSQCreate(&PingRightMessages[0], 20);                // Create message queue
 
-  sem_RS232 = OSSemCreate(1);                        // Sem for keyboard
+	sem_RS232 = OSSemCreate(1);                        // Sem for keyboard
 
-  OSTaskCreateExt(taskKeyboard,         NULL,   (void *)&taskKeyboard_stk[TASK_STACKSIZE-1],            taskKeyboard_PRIORITY,          taskKeyboard_PRIORITY,          taskKeyboard_stk,       TASK_STACKSIZE, NULL,   0);
-  OSTaskCreateExt(task_Send_Receive_Data,       NULL,   (void *)&task_Send_Receive_Data_stk[TASK_STACKSIZE-1],          task_Send_Receive_Data_PRIORITY,        task_Send_Receive_Data_PRIORITY,        task_Send_Receive_Data_stk,     TASK_STACKSIZE, NULL,   0);
-  OSTaskCreateExt(controlPingOutput,       NULL,   (void *)&controlPingOutput_stk[TASK_STACKSIZE-1],          controlPingOutput_PRIORITY,        controlPingOutput_PRIORITY,        controlPingOutput_stk,     TASK_STACKSIZE, NULL,   0);
+	OSTaskCreateExt(taskKeyboard,         NULL,   (void *)&taskKeyboard_stk[TASK_STACKSIZE-1],            taskKeyboard_PRIORITY,          taskKeyboard_PRIORITY,          taskKeyboard_stk,       TASK_STACKSIZE, NULL,   0);
+	OSTaskCreateExt(task_Send_Receive_Data,       NULL,   (void *)&task_Send_Receive_Data_stk[TASK_STACKSIZE-1],          task_Send_Receive_Data_PRIORITY,        task_Send_Receive_Data_PRIORITY,        task_Send_Receive_Data_stk,     TASK_STACKSIZE, NULL,   0);
+	OSTaskCreateExt(controlPingOutput,       NULL,   (void *)&controlPingOutput_stk[TASK_STACKSIZE-1],          controlPingOutput_PRIORITY,        controlPingOutput_PRIORITY,        controlPingOutput_stk,     TASK_STACKSIZE, NULL,   0);
 
-  /*
-   * VGA Display
-   */
-
-	/* output text message in the middle of the VGA monitor */
+	/*
+	* VGA Display
+	*/
 	VGA_text (38, 6, brand);
 	VGA_text (50, 40, zero);
 	VGA_text (68, 40, maxspeed);
@@ -314,15 +303,11 @@ int main(void){
 	VGA_text (55, 28, "Speed: ");
 	VGA_text (63, 28, "255");
 
-
-
 	VGA_box (0, 0, 319, 239, 0x00);						// clear the screen
 	circle(80, 120 , 70);
 	circle(240,120 , 70);
 
-  OSStart();
-
-
-
-  return 0; // this line will never reached
+	OSStart();
+  
+	return 0; // this line will never reached
 }
