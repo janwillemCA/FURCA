@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "includes.h"
+#include <math.h>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -30,26 +31,42 @@ OS_STK controlPingOutput_stk               [TASK_STACKSIZE];
 #define         task_Send_Receive_Data_PRIORITY 2
 #define         controlPingOutput_PRIORITY 3
 
+/* Definition of plotting a cirkle */
+#define WIDTH 60
+#define HEIGHT 20
+#define X WIDTH/2
+#define Y HEIGHT/2
+#define XMAX WIDTH-X-1
+#define XMIN -(WIDTH-X)
+#define YMAX HEIGHT-Y
+#define YMIN -(HEIGHT-Y)+1
+
+
 /* Variables */
 OS_EVENT * KeyboardQueue; // message queue
-
 OS_EVENT * PingLeftQueue; // Queue for processing control data
 OS_EVENT * PingRightQueue; // Queue for processing control data
 
 
 void * KeyboardMessages[20]; // message pointers pool
-
 void * PingLeftMessages[50];
 void * PingRightMessages[50];
 
 
 OS_EVENT *sem_RS232;
 
+void VGA_text (int, int, char *);
+void VGA_box (int, int, int, int, short);
+
+char brand[10] = "FURCA";
+
+
 /**
  * task to receive data from the keyboard
  *
  * @Mqueue puts data from keyboard in message queue
  */
+
 
 void taskKeyboard(void* pdata){
   INT8U err;
@@ -201,10 +218,72 @@ void displayTextLCD(char * message) {
   alt_up_character_lcd_string(char_lcd_dev, message);
 }
 
-/** The main function creates the tasks and starts multi-tasking
- *
- *
- */
+
+/****************************************************************************************
+ * Subroutine to send a string of text to the VGA monitor
+****************************************************************************************/
+void VGA_text(int x, int y, char * text_ptr)
+{
+	int offset;
+  	volatile char * character_buffer = (char *) 0x09000000;	// VGA character buffer
+
+	/* assume that the text string fits on one line */
+	offset = (y << 7) + x;
+	while ( *(text_ptr) )
+	{
+		*(character_buffer + offset) = *(text_ptr);	// write to the character buffer
+		++text_ptr;
+		++offset;
+	}
+}
+
+/****************************************************************************************
+ * Draw a filled rectangle on the VGA monitor
+****************************************************************************************/
+void VGA_box(int x1, int y1, int x2, int y2, short pixel_color)
+{
+	int offset, row, col;
+  	volatile short * pixel_buffer = (short *) 0x08000000;	// VGA pixel buffer
+
+	/* assume that the box coordinates are valid */
+	for (row = y1; row <= y2; row++)
+	{
+		col = x1;
+		while (col <= x2)
+		{
+			offset = (row << 9) + col;
+			*(pixel_buffer + offset) = pixel_color;	// compute halfword address, set pixel
+			++col;
+		}
+	}
+}
+
+int circle(int x, int y, int radius)
+{
+	//float xpos, ypos, radsqr, xsqr;
+    int xsqrt, rsqrt,ysum, ypositive;
+    float xpos,xleft;
+    xleft = x;
+    for(xpos = x; xpos <= radius+x; xpos+=0.1)
+    {
+    	xleft-=0.1;
+    	xsqrt = pow(xpos-x,2);
+    	rsqrt = pow(radius,2);
+
+    	ysum = sqrt(abs(rsqrt - xsqrt));
+    	ypositive = radius - ysum;
+
+
+    	printf("X; %f, Y: %d\n", xpos, ysum+y);
+    	VGA_box (xpos, ysum+y,xpos + 2,ysum+y + 2, 0x333333);
+    	VGA_box (xleft, ysum+y,xleft + 2,ysum+y + 2, 0x333333);
+    	VGA_box (xpos, ypositive+y-radius,xpos + 2,ypositive+y-radius+ 2, 0x333333);
+    	VGA_box (xleft, ypositive+y-radius,xleft + 2,ypositive+y-radius+ 2, 0x333333);
+
+
+    }
+    return(1);
+}
 
 int main(void){
   KeyboardQueue = OSQCreate(&KeyboardMessages[0], 20);                // Create message queue
@@ -219,6 +298,21 @@ int main(void){
   OSTaskCreateExt(task_Send_Receive_Data,       NULL,   (void *)&task_Send_Receive_Data_stk[TASK_STACKSIZE-1],          task_Send_Receive_Data_PRIORITY,        task_Send_Receive_Data_PRIORITY,        task_Send_Receive_Data_stk,     TASK_STACKSIZE, NULL,   0);
   OSTaskCreateExt(controlPingOutput,       NULL,   (void *)&controlPingOutput_stk[TASK_STACKSIZE-1],          controlPingOutput_PRIORITY,        controlPingOutput_PRIORITY,        controlPingOutput_stk,     TASK_STACKSIZE, NULL,   0);
 
+  /*
+   * VGA Display
+   */
+
+	/* output text message in the middle of the VGA monitor */
+	VGA_text (35, 29, brand);
+
+
+	VGA_box (0, 0, 319, 239, 0x8410);						// clear the screen
+	circle(80, 120 , 70);
+	circle(240,120 , 70);
+
   OSStart();
+
+
+
   return 0; // this line will never reached
 }
