@@ -17,15 +17,15 @@
 #include "altera_up_avalon_character_lcd.h"
 
 /* Definition of plotting a cirkle */
-#define 		WIDTH 60
-#define 		HEIGHT 20
-#define 		X WIDTH/2
-#define 		Y HEIGHT/2
-#define 		XMAX WIDTH-X-1
-#define 		XMIN -(WIDTH-X)
-#define 		YMAX HEIGHT-Y
-#define 		YMIN -(HEIGHT-Y)+1
-#define         MAX_BUFFER                      100
+#define WIDTH			60
+#define HEIGHT	 		20
+#define X 				WIDTH/2
+#define Y 				HEIGHT/2
+#define XMAX 			WIDTH-X-1
+#define XMIN -(WIDTH-X)
+#define YMAX 			HEIGHT-Y
+#define YMIN -(HEIGHT-Y)+1
+#define MAX_BUFFER      100
 
 /* Definition of Task Stacks */
 #define         TASK_STACKSIZE                  2048
@@ -43,21 +43,15 @@ OS_EVENT * KeyboardQueue; // message queue
 OS_EVENT * PingLeftQueue; // Queue for processing control data
 OS_EVENT * PingRightQueue; // Queue for processing control data
 
-
 void * KeyboardMessages[20]; // message pointers pool
 void * PingLeftMessages[50];
 void * PingRightMessages[50];
 
-
 OS_EVENT *sem_RS232;
 
+/* prototypes VGA */
 void VGA_text (int, int, char *);
 void VGA_box (int, int, int, int, short);
-
-char brand[10] = "FURCA";
-char zero[1] = "0";
-char maxspeed[3] = "260";
-char middle[3] = "130";
 
 /**
  * task to receive data from the keyboard
@@ -294,10 +288,10 @@ int main(void)
 	/*
 	* VGA Display
 	*/
-	VGA_text (38, 6, brand);
-	VGA_text (50, 40, zero);
-	VGA_text (68, 40, maxspeed);
-	VGA_text (58, 15, middle);
+	VGA_text (38, 6, "FURCA");
+	VGA_text (50, 40, "0");
+	VGA_text (68, 40, "260");
+	VGA_text (58, 15, "130");
 	VGA_text (45, 28, "65");
 	VGA_text (72, 28, "195");
 	VGA_text (55, 28, "Speed: ");
