@@ -59,7 +59,9 @@ void VGA_text (int, int, char *);
 void VGA_box (int, int, int, int, short);
 
 char brand[10] = "FURCA";
-
+char zero[1] = "0";
+char maxspeed[3] = "260";
+char middle[3] = "130";
 
 /**
  * task to receive data from the keyboard
@@ -303,10 +305,18 @@ int main(void){
    */
 
 	/* output text message in the middle of the VGA monitor */
-	VGA_text (35, 29, brand);
+	VGA_text (38, 6, brand);
+	VGA_text (50, 40, zero);
+	VGA_text (68, 40, maxspeed);
+	VGA_text (58, 15, middle);
+	VGA_text (45, 28, "65");
+	VGA_text (72, 28, "195");
+	VGA_text (55, 28, "Speed: ");
+	VGA_text (63, 28, "255");
 
 
-	VGA_box (0, 0, 319, 239, 0x8410);						// clear the screen
+
+	VGA_box (0, 0, 319, 239, 0x00);						// clear the screen
 	circle(80, 120 , 70);
 	circle(240,120 , 70);
 
