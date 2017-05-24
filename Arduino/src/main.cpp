@@ -18,16 +18,14 @@
 
 //#define PWMDRIVEVALUE 120
 #define PWMSTEERVALUE 255
-
 #define TRIGPINR 11 // right seen from driver position
 #define ECHOPINR 10
 #define TRIGPINL 12 // left seen from driver position
 #define ECHOPINL 13
 
-
 SoftwareSerial BTserial(2, 3); // RX | TX
-// Connect the HC-05 TX to Arduino pin 2 RX.
-// Connect the HC-05 RX to Arduino pin 3 TX through a voltage divider.
+/* Connect the HC-05 TX to Arduino pin 2 RX. */
+/* Connect the HC-05 RX to Arduino pin 3 TX through a voltage divider. */
 
 char receivedData = ' ';
 bool switchPing = true;
@@ -40,24 +38,24 @@ char stringPWM[20];
 bool mode = 1; //1 = autonomous. 0 = manual.
 int PWMDRIVEVALUE = 120;
 
-//sensor variables
+/* sensor variables */
 int lastMeasure[3];
 int measureCnt[3];
 int measureDifference[3];
 
-//time control for acceleration
+/* time control for acceleration */
 int forwardsCounter = 0;
 bool forwardsStart = false;
 
-//time control for steering
+/* time control for steering */
 int steeringCounter = 0;
 bool steeringStart = false;
 
-//time control for backwards
+/* time control for backwards */
 int backwardsCounter = 0;
 bool backwardsStart = false;
 
-//time control brakes
+/* time control brakes */
 int brakeCounter = 0;
 int rawIntData[3];
 int rawIntDataCounter = 0;
@@ -80,11 +78,11 @@ void setup() {
   BTserial.begin(115200);
   Serial.begin(9600);
 
-  // engine control
+  /* engine control */
   analogWrite(PWMDRIVE, PWMDRIVEVALUE);   // PWM Speed Control
   analogWrite(PWMSTEER, PWMSTEERVALUE);   // PWM Steer Control
 
-  // sensor Control
+  /* sensor Control */
   pinMode(TRIGPINL, OUTPUT);
   pinMode(ECHOPINL, INPUT);
   pinMode(TRIGPINR, OUTPUT);
@@ -92,8 +90,10 @@ void setup() {
   pinMode(A0,OUTPUT);
   digitalWrite(A0,HIGH);
 
+
   //timer initialization
   Timer1.initialize(35000);
+
   Timer1.attachInterrupt(timerInterrupt);
 }
 
@@ -101,10 +101,9 @@ void setup() {
 int testLcounter = 0;
 int testRcounter = 0;
 void loop(){
+
   digitalWrite(2, HIGH);
   digitalWrite(3, HIGH);
-
-  if()
 
   if (BTserial.available()) {
       receivedData = BTserial.read();
@@ -220,7 +219,6 @@ void right(){
   digitalWrite(LEFT, LOW);
 }
 
-
 void hold(){
   if(holdcar == false) {
     analogWrite(PWMDRIVE, 255);   // PWM Speed Control
@@ -230,8 +228,6 @@ void hold(){
     digitalWrite(BACKWARDS, HIGH);
     holdcar = true;
   }
-
-
 }
 
 void timerInterrupt() {
@@ -306,7 +302,6 @@ void improveData(int distance, int sensor) {
             //Serial.println(stringR);
             BTserial.print(stringR);
           }else {
-
           }
         }
         measureCnt[sensor] = 0;
@@ -334,7 +329,6 @@ void timingControl(bool *timingBool, int *counter, int ticks, int motor) {
         sprintf(stringPWM,"V%d",0);
         BTserial.write(stringPWM);
         digitalWrite(BACKWARDS, LOW);
-
       }
       *counter = 0;
       *timingBool = false;
@@ -344,7 +338,6 @@ void timingControl(bool *timingBool, int *counter, int ticks, int motor) {
 
 void processPing() {
   if(switchPing == true) {
-
     //rightsensor
     long durationR, distanceR;
     digitalWrite(TRIGPINR, LOW);
@@ -370,8 +363,6 @@ void processPing() {
     distanceL = (durationL/2) / 29.1;
     switchPing = true;
     //Serial.println(distanceL);
-
     improveData(distanceL, 0);
   }
-
 }
