@@ -34,6 +34,9 @@ bool switchPing = true;
 bool holdcar = false;
 char stringL[20];
 char stringR[20];
+int distanceL;
+int distanceR;
+char stringPWM[20];
 bool mode = 1; //1 = autonomous. 0 = manual.
 int PWMDRIVEVALUE = 120;
 
@@ -60,6 +63,7 @@ int rawIntData[3];
 int rawIntDataCounter = 0;
 bool brakeStart = false;
 bool disableSwitch = false;
+bool lightsOn = true;
 
 void forwards();
 void backwards();
@@ -85,14 +89,22 @@ void setup() {
   pinMode(ECHOPINL, INPUT);
   pinMode(TRIGPINR, OUTPUT);
   pinMode(ECHOPINR, INPUT);
+  pinMode(A0,OUTPUT);
+  digitalWrite(A0,HIGH);
 
   //timer initialization
-  Timer1.initialize(50000);
+  Timer1.initialize(35000);
   Timer1.attachInterrupt(timerInterrupt);
 }
 
-void loop(){
 
+int testLcounter = 0;
+int testRcounter = 0;
+void loop(){
+  digitalWrite(2, HIGH);
+  digitalWrite(3, HIGH);
+
+  if()
 
   if (BTserial.available()) {
       receivedData = BTserial.read();
@@ -100,31 +112,46 @@ void loop(){
       if(disableSwitch == false) {
         switch (receivedData) {
           case 'W':
+            digitalWrite(2, LOW);
+            digitalWrite(3, LOW);
             forwards();
             break;
           case 'A':
+            digitalWrite(2, LOW);
+            digitalWrite(3, LOW);
             left();
             break;
           case 'S':
+            digitalWrite(2, HIGH);
+            digitalWrite(3, HIGH);
             backwards();
             break;
           case 'D':
+            digitalWrite(2, LOW);
+            digitalWrite(3, LOW);
             right();
             break;
           case 'H':         // hold
+            digitalWrite(2, HIGH);
+            digitalWrite(3, HIGH);
             hold();
             break;
           case 'C':           // hold
+            digitalWrite(2, LOW);
+            digitalWrite(3, LOW);
             center();
             break;
           case 'Z':
-            //mode != mode;
-            if(mode)
-              mode = 0;
-            else
-              mode = 1;
-            //Serial.println(mode);
-
+            mode =1;
+            break;
+          case 'X':
+            mode =0;
+            break;
+          case 'L':
+            digitalWrite(A0,HIGH);
+            break;
+          case 'O':
+            digitalWrite(A0,LOW);
             break;
           case 'P':
             disableSwitch = true;
@@ -156,6 +183,7 @@ void loop(){
 }
 
 void forwards(){
+  BTserial.write("V200");
   holdcar = false;
   analogWrite(PWMDRIVE, 200);
   forwardsStart = true;
@@ -164,6 +192,7 @@ void forwards(){
 }
 
 void backwards(){
+  BTserial.write("V200");
   analogWrite(PWMDRIVE, 200);
   backwardsStart = true;
   digitalWrite(FORWARDS, LOW);
@@ -195,6 +224,7 @@ void right(){
 void hold(){
   if(holdcar == false) {
     analogWrite(PWMDRIVE, 255);   // PWM Speed Control
+    BTserial.write("V255");
     brakeStart = true;
     digitalWrite(FORWARDS, LOW);
     digitalWrite(BACKWARDS, HIGH);
@@ -211,10 +241,10 @@ void timerInterrupt() {
 
 //Serial.println(steeringCounter);
 //Serial.println(steeringStart);
-timingControl(&forwardsStart,&forwardsCounter, 15, 1);
-timingControl(&backwardsStart,&backwardsCounter, 15, 1);
-timingControl(&steeringStart,&steeringCounter, 9, 2);
-timingControl(&brakeStart,&brakeCounter, 10,3);
+timingControl(&forwardsStart,&forwardsCounter, 30, 1);
+timingControl(&backwardsStart,&backwardsCounter, 30, 1);
+timingControl(&steeringStart,&steeringCounter, 30, 2);
+timingControl(&brakeStart,&brakeCounter, 8  ,3);
 
   // if(forwardsStart == true){
   //   forwardsCounter++;
@@ -228,6 +258,13 @@ timingControl(&brakeStart,&brakeCounter, 10,3);
 }
 
 void improveData(int distance, int sensor) {
+  int maximumDifference = 0;
+  if(PWMDRIVEVALUE <= 160) {
+    maximumDifference = PWMDRIVEVALUE / 10;
+  } else {
+    maximumDifference = PWMDRIVEVALUE / 7;
+  }
+
   //sensor 0 = left, sensor 1 = right, sensor 2 = empty
   if (distance <= 120) {
       if(measureCnt[sensor] == 0) {
@@ -244,7 +281,7 @@ void improveData(int distance, int sensor) {
         //Serial.print("lastMeasurediff sensor ");Serial.print(sensor);Serial.print(":");
         //Serial.println(measureDifference[sensor]);
 
-        if(measureDifference[sensor] <= 10) {
+        if(measureDifference[sensor] <= maximumDifference) {
           lastMeasure[sensor] = distance;
           measureCnt[sensor]++;
         } else if (measureDifference[sensor] > 10) {
@@ -257,15 +294,17 @@ void improveData(int distance, int sensor) {
       if(measureCnt[sensor] == 4) {
         if(distance != 0) {
           if(sensor == 0) {
-            //Serial.println("left");
+            //Serial.print("left: ");
             sprintf(stringL,"L%d",distance);
+            distanceL = distance;
             //Serial.println(stringL);
             BTserial.print(stringL);
           }else if(sensor == 1){
-            //Serial.println("right");
-            sprintf(stringL,"R%d",distance);
-            //Serial.println(stringL);
-            BTserial.print(stringL);
+            //Serial.print("right: ");
+            sprintf(stringR,"R%d",distance);
+            distanceR = distance;
+            //Serial.println(stringR);
+            BTserial.print(stringR);
           }else {
 
           }
@@ -284,12 +323,16 @@ void timingControl(bool *timingBool, int *counter, int ticks, int motor) {
       if(motor == 1){
         //forwards/backwards motor
         analogWrite(PWMDRIVE, PWMDRIVEVALUE);
+        sprintf(stringPWM,"V%d",PWMDRIVEVALUE);
+        BTserial.write(stringPWM);
       }else if(motor == 2){
         //steering motor
         center();
       }else if(motor == 3){
         //brake motor
         analogWrite(PWMDRIVE, PWMDRIVEVALUE);
+        sprintf(stringPWM,"V%d",0);
+        BTserial.write(stringPWM);
         digitalWrite(BACKWARDS, LOW);
 
       }
