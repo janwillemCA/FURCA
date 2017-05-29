@@ -1,5 +1,8 @@
- //* @author Steven van der Vlist
-
+ /*
+ * @author Steven van der Vlist
+ * @author Henri van de Munt
+ * @author Jan Willem Casteleijn
+ */
 #include <stdio.h>
 #include <string.h>
 #include "includes.h"
