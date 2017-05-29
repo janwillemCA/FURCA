@@ -1,4 +1,4 @@
- * @author Steven van der Vlist
+ //* @author Steven van der Vlist
 
 #include <stdio.h>
 #include <string.h>
@@ -13,6 +13,7 @@
 #include <altera_up_avalon_ps2.h>
 #include <altera_up_ps2_keyboard.h>
 #include "altera_up_avalon_character_lcd.h"
+#include <stdlib.h>
 
 /* Definition of plotting a cirkle */
 #define WIDTH     60
@@ -26,26 +27,31 @@
 #define MAX_BUFFER      100
 
 /* Definition of Task Stacks */
-#define         TASK_STACKSIZE                  2048
+#define TASK_STACKSIZE  2048
 OS_STK taskKeyboard_stk                         [TASK_STACKSIZE];
 OS_STK task_Send_Receive_Data_stk               [TASK_STACKSIZE];
-OS_STK controlPingOutput_stk               [TASK_STACKSIZE];
+OS_STK controlPingOutput_stk               		[TASK_STACKSIZE];
+OS_STK controlSpeedAnimation_stk               	[TASK_STACKSIZE];
 
 /* Definition of Task Priorities */
 #define         taskKeyboard_PRIORITY           1
 #define         task_Send_Receive_Data_PRIORITY 2
 #define         controlPingOutput_PRIORITY 3
+#define 		controlSpeedAnimation_PRIORITY 4
 
 /* Variables */
 OS_EVENT * KeyboardQueue; // message queue
 OS_EVENT * PingLeftQueue; // Queue for processing control data
 OS_EVENT * PingRightQueue; // Queue for processing control data
+OS_EVENT * PwmQueue;
 
 void * KeyboardMessages[20]; // message pointers pool
 void * PingLeftMessages[50];
 void * PingRightMessages[50];
+void * PwmMessages[20];
 
 ALT_SEM(sem_RS232);
+float *speedMeterArray(int x, int y, int radius);
 
 
 const char logo[36][67]= //18 37
@@ -154,7 +160,7 @@ void task_Send_Receive_Data(void* pdata)
 
   char incomingData[50];
 
-  char buffer[MAX_BUFFER];
+
 
   FILE * fp;
   while (1) {
@@ -211,8 +217,7 @@ void task_Send_Receive_Data(void* pdata)
               if (dD[0] == 'V') {
                   int speed = atoi(d);
                   printf(speed);
-                  sprintf(buffer, "%d  ", speed);
-                  VGA_text (64, 43, buffer);
+                  OSQPost(PwmQueue, speed);
                 }
             }
           OSTimeDlyHMSM(0, 0, 0, 15);
@@ -220,6 +225,43 @@ void task_Send_Receive_Data(void* pdata)
       fclose(fp);
       err = ALT_SEM_POST(sem_RS232);
     }
+}
+
+void controlSpeedAnimation(void *pdata)
+{
+	INT8U err;
+	int speed;
+	int previousSpeed;
+	char buffer[MAX_BUFFER];
+	float *innerCircle;
+	//float** outerCircle;
+
+
+
+	//innerCircle = speedometerArray(240,120 , 5);
+	innerCircle = speedMeterArray(240,120,50);
+	printf("array:%f\n",innerCircle[10]);
+	int i;
+
+	while(innerCircle[i] != 0) {
+		//printf("Index X:%d:%d\n",i,(int)innerCircle[i]);
+		//printf("Index Y:%d:%d\n",i+1,(int)innerCircle[i+1]);
+		draw_line((int)innerCircle[i],(int)innerCircle[i+1],240,120);
+		OSTimeDlyHMSM(0, 0, 0, 250);
+		i+=2;
+	}
+
+	while(1){
+		speed = OSQPend(PwmQueue, 0, &err);
+		sprintf(buffer, "%d  ", speed);
+		VGA_text (64, 43, buffer);
+		if(previousSpeed == NULL) {
+			previousSpeed = speed;
+		}else if(previousSpeed != speed) {
+			//do stuff
+			previousSpeed = speed;
+		}
+	}
 }
 
 void controlPingOutput(void *pdata)
@@ -340,6 +382,34 @@ int circle(int x, int y, int radius)
     return(1);
 }
 
+float *speedMeterArray(int x, int y, int radius)
+{
+  //float xpos, ypos, radsqr, xsqr;
+    int xsqrt, rsqrt,ysum, ypositive;
+    float xpos,xleft;
+    xleft = x;
+    int xIndex = 0;
+    int yIndex = 1;
+    float *array = malloc(sizeof(float)*600);
+    for(xpos = x; xpos <= radius+x; xpos+=0.5) {
+      xleft-=0.1;
+      xsqrt = pow(xpos-x,2);
+      rsqrt = pow(radius,2);
+
+      ysum = sqrt(abs(rsqrt - xsqrt));
+      ypositive = radius - ysum;
+
+      array[xIndex] = xpos;
+      //printf("%d place x:%f\n",xIndex,array[xIndex]);
+      array[yIndex] = ysum+y;
+      //printf("%d place y:%f\n",yIndex,array[yIndex]);
+
+      xIndex +=2;
+      yIndex +=2;
+    }
+   return array;
+}
+
 void draw_object(int xpos, int ypos, const char sprite[36][67])
 {
   for (int spritex = 0; spritex < 67; spritex++)
@@ -359,67 +429,143 @@ void draw_object(int xpos, int ypos, const char sprite[36][67])
     }
 }
 
+
+
 void draw_line(int x, int y, int endX, int endY) {
-  int dx;
-  int dy;
+  float dx;
+  float dy;
+  int xDirection; //1 is right 0 is left 2 is horizontal
+  int yDirection; //1 is up 0 is down 2 is vertical
   if(x < endX) {
     dx = endX - x;
+    xDirection = 1;
   }else if(x > endX) {
     dx = x - endX;
+    xDirection = 0;
   }else{
     dx = 0;
+    yDirection = 2;
   }
 
   if(y < endY) {
     dy = endY - y;
+    yDirection = 0;
   }else if(y > endY) {
     dy = y - endY;
+    yDirection = 1;
   }else{
     dy = 0;
+    yDirection = 2;
   }
 
-  if(x < endX) {
-    for (int i = x; i <= endX; i++) {
-      if(y < endY) {
-        int yDef = y + dy * (i - x) / dx;
-        VGA_box(i, yDef,i,yDef,0xffffff);
-      }else{
-        printf("test");
-        int yDef = y - dy * (i - x) / dx;
-        VGA_box(i, yDef,i,yDef,0xffffff);
-      }
-    }
-  }else if(x > endX) {
-    for (int i = x; i >= endX; i--) {
-      int yDef = y + dy * (i + x) / dx;
-      VGA_box(i, yDef,i,yDef,0xffffff);
-      printf("%d\n",i);
-    }
+  printf("dx,dy:%f,%f\n",dx,dy);
+
+  float up;
+  float down;
+  float curX = x;
+  float curY = y;
+
+  //up to the right
+  if(xDirection == 1 && yDirection == 1) {
+	  printf("up to right");
+	  if(dy > dx) {
+	  	up = dx/dy;
+	  	for(int i = 0; i<=dy;i++) {
+	  		curX = curX + up;
+	  		curY = curY - 1;
+	  		VGA_box (curX,curY,curX,curY, 0xffffff);
+	  		  }
+	  	}else {
+	  	up = dy/dx;
+	  	for(int i = 0; i<=dx;i++) {
+	  		printf("curX: %d\n",(int)curX);
+	  		curX = curX + 1;
+	  		curY = curY - up;
+	  		VGA_box (curX,curY,curX,curY, 0xffffff);
+	  	}
+	 }
+  }else if(xDirection == 1 && yDirection == 0)
+  {//down to the right
+	  if(dy > dx) {
+	  		  up = dx/dy;
+	  		  for(int i = 0; i<=dy;i++) {
+	  			  curX = curX + up;
+	  			  curY = curY + 1;
+	  			  VGA_box (curX,curY,curX,curY, 0xffffff);
+	  		  }
+	  	  }else {
+	  		  up = dy/dx;
+	  		  for(int i = 0; i<=dx;i++) {
+	  			  printf("curX: %d\n",(int)curX);
+	  			  curX = curX + 1;
+	  			  curY = curY + up;
+	  			  VGA_box (curX,curY,curX,curY, 0xffffff);
+	  		  }
+	  	  }
+  }else if(xDirection == 0 && yDirection == 1)
+  {//up to the left
+	  if(dy > dx) {
+		  up = dx/dy;
+		  for(int i = 0; i<=dy;i++) {
+			  curX = curX - up;
+			  curY = curY - 1;
+			  VGA_box (curX,curY,curX,curY, 0xffffff);
+		  }
+	  }else {
+		  up = dy/dx;
+		  for(int i = 0; i<=dx;i++) {
+			  printf("curX: %d\n",(int)curX);
+			  curX = curX - 1;
+			  curY = curY - up;
+			  VGA_box (curX,curY,curX,curY, 0xffffff);
+		  }
+	  }
+
+  }else if(xDirection == 0 && yDirection == 0)
+  {//down to the left
+	  if(dy > dx) {
+	  		  up = dx/dy;
+	  		  for(int i = 0; i<=dy;i++) {
+	  			  curX = curX - up;
+	  			  curY = curY + 1;
+	  			  VGA_box (curX,curY,curX,curY, 0xffffff);
+	  		  }
+	  	  }else {
+	  		  up = dy/dx;
+	  		  for(int i = 0; i<=dx;i++) {
+	  			  printf("curX: %d\n",(int)curX);
+	  			  curX = curX - 1;
+	  			  curY = curY + up;
+	  			  VGA_box (curX,curY,curX,curY, 0xffffff);
+	  		  }
+	  	  }
   }
+
+
 }
 
 int main(void)
 {
 
   KeyboardQueue = OSQCreate(&KeyboardMessages[0], 20);                // Create message queue
-
   PingLeftQueue = OSQCreate(&PingLeftMessages[0], 20);                // Create message queue
   PingRightQueue = OSQCreate(&PingRightMessages[0], 20);                // Create message queue
+  PwmQueue = OSQCreate(&PwmMessages[0], 20);
 
   ALT_SEM_CREATE(&sem_RS232, 1);
 
-  OSTaskCreateExt(taskKeyboard,         NULL,   (void *)&taskKeyboard_stk[TASK_STACKSIZE-1],            taskKeyboard_PRIORITY,          taskKeyboard_PRIORITY,          taskKeyboard_stk,       TASK_STACKSIZE, NULL,   0);
-  OSTaskCreateExt(task_Send_Receive_Data,       NULL,   (void *)&task_Send_Receive_Data_stk[TASK_STACKSIZE-1],          task_Send_Receive_Data_PRIORITY,        task_Send_Receive_Data_PRIORITY,        task_Send_Receive_Data_stk,     TASK_STACKSIZE, NULL,   0);
-  OSTaskCreateExt(controlPingOutput,       NULL,   (void *)&controlPingOutput_stk[TASK_STACKSIZE-1],          controlPingOutput_PRIORITY,        controlPingOutput_PRIORITY,        controlPingOutput_stk,     TASK_STACKSIZE, NULL,   0);
-
+  OSTaskCreateExt(taskKeyboard,NULL,(void *)&taskKeyboard_stk[TASK_STACKSIZE-1],taskKeyboard_PRIORITY,taskKeyboard_PRIORITY,taskKeyboard_stk,TASK_STACKSIZE, NULL,0);
+  OSTaskCreateExt(task_Send_Receive_Data,NULL,(void *)&task_Send_Receive_Data_stk[TASK_STACKSIZE-1],task_Send_Receive_Data_PRIORITY,task_Send_Receive_Data_PRIORITY,task_Send_Receive_Data_stk,TASK_STACKSIZE,NULL,0);
+  OSTaskCreateExt(controlPingOutput,NULL,(void *)&controlPingOutput_stk[TASK_STACKSIZE-1],controlPingOutput_PRIORITY,controlPingOutput_PRIORITY,controlPingOutput_stk,TASK_STACKSIZE,NULL,0);
+  OSTaskCreateExt(controlSpeedAnimation,NULL,(void *)&controlSpeedAnimation_stk[TASK_STACKSIZE-1],controlSpeedAnimation_PRIORITY,controlSpeedAnimation_PRIORITY,controlSpeedAnimation_stk,TASK_STACKSIZE,NULL,0);
   /*
   * VGA Display
   */
   VGA_text (50, 40, "0");
-  VGA_text (68, 40, "260");
+  VGA_text (69, 40, "260");
   VGA_text (58, 15, "130");
   VGA_text (45, 28, "65");
-  VGA_text (72, 28, "195");
+  VGA_text (73, 28, "195");
   VGA_text (56, 43, "Power: ");
   VGA_text (64, 43, "0  ");
   VGA_text (12, 23, "Measured distance: ");
@@ -429,11 +575,23 @@ int main(void)
   VGA_box (0, 0, 319, 239, 0x00);           // clear the screen
   circle(80, 120 , 70);
   circle(240,120 , 70);
+  //circle(240,120 , 5);
+  //circle(240,120 , 50);
 
   draw_object(125, 15, logo);
-  //draw_line(53,53,100,100);
+  //draw_line(280,120,200,150);
   //draw_line(20,10,50,50);
-  draw_line(50,50,0,60);
+  //draw_line(50,50,80,100);
+  //draw_line(300,200,20,20);
+  //draw_line(100,100,50,50);
+  //draw_line(280,130,240,120);
+  //draw_line(240,120,280,110);
+  //draw_line(240,120,280,70);
+  //draw_line(240,120,220,70);
+  //draw_line(240,120,220,170);
+  //draw_line(50,50,70,105);
+  //draw_line(60, 60,100,100);
+  //draw_line(50,50,100,60);
   OSStart();
   
   return 0; // this line will never reached
