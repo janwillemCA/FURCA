@@ -1,3 +1,4 @@
+// this is code to test the img libary
 #include <stdio.h>
 #include <system.h>
 #include "bmp_lib.h"

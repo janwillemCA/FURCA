@@ -108,76 +108,76 @@ void loop(){
   if (BTserial.available()) {
       receivedData = BTserial.read();
       Serial.write(receivedData);
-      if(disableSwitch == false) {
-        switch (receivedData) {
-          case 'W':
-            digitalWrite(2, LOW);
-            digitalWrite(3, LOW);
-            forwards();
-            break;
-          case 'A':
-            digitalWrite(2, LOW);
-            digitalWrite(3, LOW);
-            left();
-            break;
-          case 'S':
-            digitalWrite(2, HIGH);
-            digitalWrite(3, HIGH);
-            backwards();
-            break;
-          case 'D':
-            digitalWrite(2, LOW);
-            digitalWrite(3, LOW);
-            right();
-            break;
-          case 'H':         // hold
-            digitalWrite(2, HIGH);
-            digitalWrite(3, HIGH);
-            hold();
-            break;
-          case 'C':           // hold
-            digitalWrite(2, LOW);
-            digitalWrite(3, LOW);
-            center();
-            break;
-          case 'Z':
-            mode =1;
-            break;
-          case 'X':
-            mode =0;
-            break;
-          case 'L':
-            digitalWrite(A0,HIGH);
-            break;
-          case 'O':
-            digitalWrite(A0,LOW);
-            break;
-          case 'P':
-            disableSwitch = true;
-            break;
-          default:
-            // hold();
-            // if nothing else match, do the default
-            // default is optional
-            break;
-          }
-      } else {
-        if(rawIntDataCounter < 3) {
-          if(receivedData >= 48 && receivedData <= 57) {
-            rawIntData[rawIntDataCounter] = receivedData - '0';
-            rawIntDataCounter++;
-          }
+      if (disableSwitch == false) {
+          switch (receivedData) {
+            case 'W':
+              digitalWrite(2, LOW);
+              digitalWrite(3, LOW);
+              forwards();
+              break;
+            case 'A':
+              digitalWrite(2, LOW);
+              digitalWrite(3, LOW);
+              left();
+              break;
+            case 'S':
+              digitalWrite(2, HIGH);
+              digitalWrite(3, HIGH);
+              backwards();
+              break;
+            case 'D':
+              digitalWrite(2, LOW);
+              digitalWrite(3, LOW);
+              right();
+              break;
+            case 'H':       // hold
+              digitalWrite(2, HIGH);
+              digitalWrite(3, HIGH);
+              hold();
+              break;
+            case 'C':         // hold
+              digitalWrite(2, LOW);
+              digitalWrite(3, LOW);
+              center();
+              break;
+            case 'Z':
+              mode = 1;
+              break;
+            case 'X':
+              mode = 0;
+              break;
+            case 'L':
+              digitalWrite(A0,HIGH);
+              break;
+            case 'O':
+              digitalWrite(A0,LOW);
+              break;
+            case 'P':
+              disableSwitch = true;
+              break;
+            default:
+              // hold();
+              // if nothing else match, do the default
+              // default is optional
+              break;
+            }
         } else {
-          rawIntDataCounter = 0;
-          disableSwitch = false;
-          int finalData = rawIntData[2] + rawIntData[1]*10 + rawIntData[0]*100;
-          if(finalData <= 255) {
-            PWMDRIVEVALUE = finalData;
-          }
-          Serial.print("PWMDRIVEVALUE:");
-          Serial.println(PWMDRIVEVALUE);
+          if (rawIntDataCounter < 3) {
+              if (receivedData >= 48 && receivedData <= 57) {
+                  rawIntData[rawIntDataCounter] = receivedData - '0';
+                  rawIntDataCounter++;
+                }
+            } else {
+              rawIntDataCounter = 0;
+              disableSwitch = false;
+              int finalData = rawIntData[2] + rawIntData[1]*10 + rawIntData[0]*100;
+              if (finalData <= 255) {
+                  PWMDRIVEVALUE = finalData;
+                }
+              Serial.print("PWMDRIVEVALUE:");
+              Serial.println(PWMDRIVEVALUE);
+            }
         }
-      }
     }
 }
 
@@ -199,9 +199,9 @@ void backwards(){
 }
 
 void left(){
-  if(mode == 0) {
-    steeringStart = true;
-  }
+  if (mode == 0) {
+      steeringStart = true;
+    }
   digitalWrite(LEFT, HIGH);
   digitalWrite(RIGHT, LOW);
 }
@@ -212,35 +212,35 @@ void center(){
 }
 
 void right(){
-  if(mode == 0) {
-    steeringStart = true;
-  }
+  if (mode == 0) {
+      steeringStart = true;
+    }
   digitalWrite(RIGHT, HIGH);
   digitalWrite(LEFT, LOW);
 }
 
 void hold(){
-  if(holdcar == false) {
-    analogWrite(PWMDRIVE, 255);   // PWM Speed Control
-    BTserial.write("V255");
-    brakeStart = true;
-    digitalWrite(FORWARDS, LOW);
-    digitalWrite(BACKWARDS, HIGH);
-    holdcar = true;
-  }
+  if (holdcar == false) {
+      analogWrite(PWMDRIVE, 255); // PWM Speed Control
+      BTserial.write("V255");
+      brakeStart = true;
+      digitalWrite(FORWARDS, LOW);
+      digitalWrite(BACKWARDS, HIGH);
+      holdcar = true;
+    }
 }
 
 void timerInterrupt() {
-  if(mode == 1) {
-    processPing();
-  }
+  if (mode == 1) {
+      processPing();
+    }
 
 //Serial.println(steeringCounter);
 //Serial.println(steeringStart);
-timingControl(&forwardsStart,&forwardsCounter, 30, 1);
-timingControl(&backwardsStart,&backwardsCounter, 30, 1);
-timingControl(&steeringStart,&steeringCounter, 30, 2);
-timingControl(&brakeStart,&brakeCounter, 8  ,3);
+  timingControl(&forwardsStart,&forwardsCounter, 30, 1);
+  timingControl(&backwardsStart,&backwardsCounter, 30, 1);
+  timingControl(&steeringStart,&steeringCounter, 30, 2);
+  timingControl(&brakeStart,&brakeCounter, 8,3);
 
   // if(forwardsStart == true){
   //   forwardsCounter++;
@@ -255,114 +255,114 @@ timingControl(&brakeStart,&brakeCounter, 8  ,3);
 
 void improveData(int distance, int sensor) {
   int maximumDifference = 0;
-  if(PWMDRIVEVALUE <= 160) {
-    maximumDifference = PWMDRIVEVALUE / 10;
-  } else {
-    maximumDifference = PWMDRIVEVALUE / 7;
-  }
+  if (PWMDRIVEVALUE <= 160) {
+      maximumDifference = PWMDRIVEVALUE / 10;
+    } else {
+      maximumDifference = PWMDRIVEVALUE / 7;
+    }
 
   //sensor 0 = left, sensor 1 = right, sensor 2 = empty
   if (distance <= 120) {
-      if(measureCnt[sensor] == 0) {
-        lastMeasure[sensor] = distance;
-        measureCnt[sensor]++;
-      }
-      if(measureCnt[sensor] >= 1 && measureCnt[sensor] <8) {
-        if(distance > lastMeasure[sensor]) {
-          measureDifference[sensor] = distance - lastMeasure[sensor];
-        } else {
-          measureDifference[sensor] = lastMeasure[sensor] - distance;
-        }
-
-        //Serial.print("lastMeasurediff sensor ");Serial.print(sensor);Serial.print(":");
-        //Serial.println(measureDifference[sensor]);
-
-        if(measureDifference[sensor] <= maximumDifference) {
+      if (measureCnt[sensor] == 0) {
           lastMeasure[sensor] = distance;
           measureCnt[sensor]++;
-        } else if (measureDifference[sensor] > 10) {
+        }
+      if (measureCnt[sensor] >= 1 && measureCnt[sensor] <8) {
+          if (distance > lastMeasure[sensor]) {
+              measureDifference[sensor] = distance - lastMeasure[sensor];
+            } else {
+              measureDifference[sensor] = lastMeasure[sensor] - distance;
+            }
+
+          //Serial.print("lastMeasurediff sensor ");Serial.print(sensor);Serial.print(":");
+          //Serial.println(measureDifference[sensor]);
+
+          if (measureDifference[sensor] <= maximumDifference) {
+              lastMeasure[sensor] = distance;
+              measureCnt[sensor]++;
+            } else if (measureDifference[sensor] > 10) {
+              measureCnt[sensor] = 0;
+              //Serial.println("set to 0");
+            }
+
+        }
+
+      if (measureCnt[sensor] == 4) {
+          if (distance != 0) {
+              if (sensor == 0) {
+                  //Serial.print("left: ");
+                  sprintf(stringL,"L%d",distance);
+                  distanceL = distance;
+                  //Serial.println(stringL);
+                  BTserial.print(stringL);
+                }else if (sensor == 1) {
+                  //Serial.print("right: ");
+                  sprintf(stringR,"R%d",distance);
+                  distanceR = distance;
+                  //Serial.println(stringR);
+                  BTserial.print(stringR);
+                }else {
+                }
+            }
           measureCnt[sensor] = 0;
-          //Serial.println("set to 0");
         }
-
-      }
-
-      if(measureCnt[sensor] == 4) {
-        if(distance != 0) {
-          if(sensor == 0) {
-            //Serial.print("left: ");
-            sprintf(stringL,"L%d",distance);
-            distanceL = distance;
-            //Serial.println(stringL);
-            BTserial.print(stringL);
-          }else if(sensor == 1){
-            //Serial.print("right: ");
-            sprintf(stringR,"R%d",distance);
-            distanceR = distance;
-            //Serial.println(stringR);
-            BTserial.print(stringR);
-          }else {
-          }
-        }
-        measureCnt[sensor] = 0;
-      }
 
     }
 }
 
 void timingControl(bool *timingBool, int *counter, int ticks, int motor) {
-  if(*timingBool == 1){
-    *counter = *counter +1;
-    if(*counter == ticks){
-      //what to do when timer runs out for different motors
-      if(motor == 1){
-        //forwards/backwards motor
-        analogWrite(PWMDRIVE, PWMDRIVEVALUE);
-        sprintf(stringPWM,"V%d",PWMDRIVEVALUE);
-        BTserial.write(stringPWM);
-      }else if(motor == 2){
-        //steering motor
-        center();
-      }else if(motor == 3){
-        //brake motor
-        analogWrite(PWMDRIVE, PWMDRIVEVALUE);
-        sprintf(stringPWM,"V%d",0);
-        BTserial.write(stringPWM);
-        digitalWrite(BACKWARDS, LOW);
-      }
-      *counter = 0;
-      *timingBool = false;
+  if (*timingBool == 1) {
+      *counter = *counter +1;
+      if (*counter == ticks) {
+          //what to do when timer runs out for different motors
+          if (motor == 1) {
+              //forwards/backwards motor
+              analogWrite(PWMDRIVE, PWMDRIVEVALUE);
+              sprintf(stringPWM,"V%d",PWMDRIVEVALUE);
+              BTserial.write(stringPWM);
+            }else if (motor == 2) {
+              //steering motor
+              center();
+            }else if (motor == 3) {
+              //brake motor
+              analogWrite(PWMDRIVE, PWMDRIVEVALUE);
+              sprintf(stringPWM,"V%d",0);
+              BTserial.write(stringPWM);
+              digitalWrite(BACKWARDS, LOW);
+            }
+          *counter = 0;
+          *timingBool = false;
+        }
     }
-  }
 }
 
 void processPing() {
-  if(switchPing == true) {
-    //rightsensor
-    long durationR, distanceR;
-    digitalWrite(TRIGPINR, LOW);
-    delayMicroseconds(2);
-    digitalWrite(TRIGPINR, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(TRIGPINR, LOW);
-    durationR = pulseIn(ECHOPINR, HIGH);
-    distanceR = (durationR/2) / 29.1;
-    switchPing =  false;
+  if (switchPing == true) {
+      //rightsensor
+      long durationR, distanceR;
+      digitalWrite(TRIGPINR, LOW);
+      delayMicroseconds(2);
+      digitalWrite(TRIGPINR, HIGH);
+      delayMicroseconds(10);
+      digitalWrite(TRIGPINR, LOW);
+      durationR = pulseIn(ECHOPINR, HIGH);
+      distanceR = (durationR/2) / 29.1;
+      switchPing =  false;
 
-    improveData(distanceR, 1);
+      improveData(distanceR, 1);
 
-  } else if(switchPing == false) {
-    //leftsensor
-    long durationL, distanceL;
-    digitalWrite(TRIGPINL, LOW);
-    delayMicroseconds(2);
-    digitalWrite(TRIGPINL, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(TRIGPINL, LOW);
-    durationL = pulseIn(ECHOPINL, HIGH);
-    distanceL = (durationL/2) / 29.1;
-    switchPing = true;
-    //Serial.println(distanceL);
-    improveData(distanceL, 0);
-  }
+    } else if (switchPing == false) {
+      //leftsensor
+      long durationL, distanceL;
+      digitalWrite(TRIGPINL, LOW);
+      delayMicroseconds(2);
+      digitalWrite(TRIGPINL, HIGH);
+      delayMicroseconds(10);
+      digitalWrite(TRIGPINL, LOW);
+      durationL = pulseIn(ECHOPINL, HIGH);
+      distanceL = (durationL/2) / 29.1;
+      switchPing = true;
+      //Serial.println(distanceL);
+      improveData(distanceL, 0);
+    }
 }
