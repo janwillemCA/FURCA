@@ -1,12 +1,10 @@
- /*
- * @author Steven van der Vlist
- * @author Henri van de Munt
- * @author Jan Willem Casteleijn
- */
+ //* @author Steven van der Vlist
+
 #include <stdio.h>
 #include <string.h>
 #include "includes.h"
 #include <math.h>
+#include "bmp_lib.h"
 
 #include "os/alt_sem.h"
 
@@ -57,46 +55,6 @@ ALT_SEM(sem_RS232);
 float *speedMeterArray(int x, int y, int radius);
 
 
-const char logo[36][67]= //18 37
-{
-    {'c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c',},
-    {'c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c',},
-    {'c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c',},
-    {'c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c',},
-    {'c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c',},
-    {'c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','b','c','c','c','c','c','c','c','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c',},
-    {'c','c','c','c','c','c','c','c','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','c','c','c','c','c','c','c','c',},
-    {'c','c','c','c','c','c','c','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','c','c','c','c','c','c','c',},
-    {'c','c','c','c','c','c','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','c','c','c','c','c','c',},
-    {'c','c','c','c','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','c','c','c','c',},
-    {'c','c','c','c','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','c','c','c','c',},
-    {'c','c','c','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','c','c','c','c','c','c','c','c','b','b','b','c','c','c',},
-    {'c','c','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','c','c','c','c','c','c','c','c','c','b','b','b','c','c',},
-    {'c','b','b','b','c','c','c','c','c','c','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','c','c','c','c','c','c','c','c','b','b','b','b','b','b','b','b','c','c','c','c','c','c','c','b','b','b','c',},
-    {'c','b','b','b','c','c','c','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','c','c','c','c','c','b','b','b','c',},
-    {'c','b','b','b','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','c','c','c','c','c','c','c','c','c','c','b','b','c',},
-    {'c','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','b','c','c','c','c','c','c','c','c','b','b','c','c','c','c','c','c','c','c','c','c','c','b','b','b',},
-    {'b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','c','c','c','c','c','c','c','c','c','b','c','c','b','c','c','c','c','c','c','c','c','b','b','b',},
-    {'b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','c','c','c','c','c','c','c','c','c','c','c','b','b','c','c','c','c','c','c','c','b','b','b',},
-    {'c','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','c','c','c','c','c','c','c','c','c','b','b','b','b','c','c','c','c','c','c','b','b','b',},
-    {'c','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','c','c','c','c','c','c','c','c','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','c','c','b','b','c',},
-    {'c','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','c','c','c','c','c','c','c','c','c','b','b','b','c','c','c','c','c','c','b','b','b','c',},
-    {'c','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','c','c','c','c','c','c','c','c','c','c','c','b','b','c','c','c','c','c','c','b','b','b','c',},
-    {'c','c','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','c','c','c','c','c','c','c','b','c','c','c','c','c','c','c','c','b','c','c','c','c','c','c','c','c','c','c','c','c','b','c','c','c','c','c','c','b','b','b','c','c',},
-    {'c','c','c','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','c','c','c','c','c','c','b','b','c','c','c','c','c','c','c','c','b','c','c','c','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','c','c','c',},
-    {'c','c','c','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','c','c','c','c','c','c','c','c','c','c','c','b','b','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','c','c','c',},
-    {'c','c','c','c','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','c','c','c','c','c','b','b','b','b','c','c','c','c',},
-    {'c','c','c','c','c','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','b','b','b','c','c','c','c','c','c','c','b','b','b','b','b','b','c','c','c','c','c','c','c','c','b','b','b','c','c','c','c','c','c',},
-    {'c','c','c','c','c','c','c','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','c','c','c','c','c','c','c','c','c','c','c','c','b','b','c','c','c','c','c','c','c','c','b','b','b','b','c','c','c','c','c','c','c',},
-    {'c','c','c','c','c','c','c','c','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','b','c','c','c','c','c','c','b','b','b','b','b','c','c','c','c','c','c','c','c',},
-    {'c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c',},
-    {'c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c',},
-    {'c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c',},
-    {'c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c',},
-    {'c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c',},
-    {'c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','b','b','b','b','b','b','b','b','b','b','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c','c',},
-
-};
 
 /**
  * task to receive data from the keyboard
@@ -121,22 +79,22 @@ void taskKeyboard(void* pdata)
               //alt_printf("KEY1: %c\n",ascii);
               sprintf(buffer, "Pressed key: %c", ascii);
               displayTextLCD(buffer);
-              VGA_text (33, 52, buffer);
+              VGA_text (60, 4, buffer);
               err = OSQPost(KeyboardQueue, ascii);
 
               if(ascii == 'Z'){
-                VGA_text (60, 52, "Driving Autonomous");
+                VGA_text (60, 3, "Driving Autonomous");
               }
 
               if(ascii == 'X'){
-                VGA_text (60, 52, "Driving Manual    ");
+                VGA_text (60, 3, "Driving Manual    ");
               }
 
               if(ascii == 'L'){
-                            VGA_text (10, 52, "Light ON ");
+                            VGA_text (10, 3, "Lights ON ");
                            }
               if(ascii == 'O'){
-                            VGA_text (10, 52, "Light OFF");
+                            VGA_text (10, 3, "Lights OFF");
                            }
 
 
@@ -233,37 +191,58 @@ void task_Send_Receive_Data(void* pdata)
 void controlSpeedAnimation(void *pdata)
 {
 	INT8U err;
-	int speed;
-	int previousSpeed;
+	int speed = 0;
+	float previousSpeed = 0;
+	//direction: 1 is up, 2 is down
+	int direction = 0;
 	char buffer[MAX_BUFFER];
-	float *innerCircle;
-	//float** outerCircle;
+	int *outerCircle = speedMeterArray(241,122,43);
+	//amount of values stored in the array/2
+	int size = 350;
+	//index: at what place in the array are we? max size is at 0pwm. index 0 is at 255 pwm
+	int index = size;
+	float steps = 255/(size/5);
 
 
 
-	//innerCircle = speedometerArray(240,120 , 5);
-	innerCircle = speedMeterArray(240,120,50);
-	printf("array:%f\n",innerCircle[10]);
-	int i;
 
-	while(innerCircle[i] != 0) {
-		//printf("Index X:%d:%d\n",i,(int)innerCircle[i]);
-		//printf("Index Y:%d:%d\n",i+1,(int)innerCircle[i+1]);
-		draw_line((int)innerCircle[i],(int)innerCircle[i+1],240,120);
-		OSTimeDlyHMSM(0, 0, 0, 250);
-		i+=2;
-	}
+while(1){
 
-	while(1){
-		speed = OSQPend(PwmQueue, 0, &err);
+		int s = (int)OSQPend(PwmQueue, 1, &err);
+		if(s != NULL) {
+			speed=s;
+		}
+		printf("test:%d\n",speed);
+		//printf("previousSpeed:%f\n",previousSpeed);
 		sprintf(buffer, "%d  ", speed);
 		VGA_text (64, 43, buffer);
-		if(previousSpeed == NULL) {
-			previousSpeed = speed;
-		}else if(previousSpeed != speed) {
-			//do stuff
-			previousSpeed = speed;
+		if(speed > previousSpeed) {
+			//difference = speed - previousSpeed;
+			direction = 1;
+
+		}else if(speed < previousSpeed){
+			//difference =  previousSpeed - speed;
+			direction = 2;
+		}else{
+			direction = 0;
 		}
+
+		if(direction == 1) {
+			index-=4;
+			previousSpeed+=steps;
+		}else if(direction == 2) {
+			index+=4;
+			previousSpeed-=steps;
+		}
+		draw_line((int)outerCircle[index],(int)outerCircle[index+1],242,125,0xffffff);
+		if(index <= 345 && index >= 4) {
+			if(direction == 1) {
+				draw_line((int)outerCircle[index+4],(int)outerCircle[index+5],242,125,0x00);
+			}else if(direction == 2) {
+				draw_line((int)outerCircle[index-4],(int)outerCircle[index-3],242,125,0x00);
+			}
+		}
+		OSTimeDlyHMSM(0, 0, 0, 60);
 	}
 }
 
@@ -363,54 +342,70 @@ void VGA_box(int x1, int y1, int x2, int y2, short pixel_color)
 }
 
 
-int circle(int x, int y, int radius)
+
+float *speedMeterArray(int x0, int y0, int radius)
 {
-  //float xpos, ypos, radsqr, xsqr;
-    int xsqrt, rsqrt,ysum, ypositive;
-    float xpos,xleft;
-    xleft = x;
-    for(xpos = x; xpos <= radius+x; xpos+=0.1) {
-      xleft-=0.1;
-      xsqrt = pow(xpos-x,2);
-      rsqrt = pow(radius,2);
+	int *array = malloc(sizeof(float)*400);
+    int x = radius;
+    int y = 0;
+    int err = 0;
+    int index = 0;
+    int a2[200],a3[200],a4[200],a5[200],a6[200],a7[200];
 
-      ysum = sqrt(abs(rsqrt - xsqrt));
-      ypositive = radius - ysum;
+    while (x >= y)
+    {
+    	a2[index] = x0+x;
+    	a2[index+1] = y0+y;
 
-      VGA_box (xpos, ysum+y,xpos + 2,ysum+y + 2, 0x333333);
-      VGA_box (xleft, ysum+y,xleft + 2,ysum+y + 2, 0x333333);
-      VGA_box (xpos, ypositive+y-radius,xpos + 2,ypositive+y-radius+ 2, 0x333333);
-      VGA_box (xleft, ypositive+y-radius,xleft + 2,ypositive+y-radius+ 2, 0x333333);
+    	a7[index] = x0-x;
+    	a7[index+1] = y0+y;
+
+    	a6[index] = x0-x;
+    	a6[index+1] = y0-y;
+
+    	a5[index] = x0-y;
+    	a5[index+1] = y0-x;
+
+    	a4[index] = x0+y;
+    	a4[index+1] = y0-x;
+
+    	a3[index] = x0+x;
+    	a3[index+1] = y0-y;
+
+        y += 1;
+        if (err <= 0)
+        {
+            err += 2*y + 1;
+        }
+        if (err > 0)
+        {
+            x -= 1;
+            err -= 2*x + 1;
+        }
+
+        index +=2;
     }
-    return(1);
-}
 
-float *speedMeterArray(int x, int y, int radius)
-{
-  //float xpos, ypos, radsqr, xsqr;
-    int xsqrt, rsqrt,ysum, ypositive;
-    float xpos,xleft;
-    xleft = x;
-    int xIndex = 0;
-    int yIndex = 1;
-    float *array = malloc(sizeof(float)*600);
-    for(xpos = x; xpos <= radius+x; xpos+=0.5) {
-      xleft-=0.1;
-      xsqrt = pow(xpos-x,2);
-      rsqrt = pow(radius,2);
-
-      ysum = sqrt(abs(rsqrt - xsqrt));
-      ypositive = radius - ysum;
-
-      array[xIndex] = xpos;
-      //printf("%d place x:%f\n",xIndex,array[xIndex]);
-      array[yIndex] = ysum+y;
-      //printf("%d place y:%f\n",yIndex,array[yIndex]);
-
-      xIndex +=2;
-      yIndex +=2;
-    }
-   return array;
+            //the below code is used to put the coörds in the correct order in the final array so you can loop through them.
+            int finalIndex = 0;
+            //size is the same for all 8 arrays
+            int size = 0;
+            while(a2[size] != 0) {
+            	size++;
+            }
+            size=size-2;
+            printf("size:%d\n",size);
+            for(int i=0; i <= size; i++) {
+            	array[finalIndex] = a2[size-i];
+            	array[finalIndex+size] = a3[i];
+            	array[finalIndex+size*2] = a4[size-i];
+            	array[finalIndex+size*3] = a5[i];
+            	array[finalIndex+size*4] = a6[size-i];
+            	array[finalIndex+size*5] = a7[i];
+            	printf("%d\n",a2[size-i]);
+            	finalIndex++;
+            }
+	return array;
 }
 
 void draw_object(int xpos, int ypos, const char sprite[36][67])
@@ -434,7 +429,7 @@ void draw_object(int xpos, int ypos, const char sprite[36][67])
 
 
 
-void draw_line(int x, int y, int endX, int endY) {
+void draw_line(int x, int y, int endX, int endY, short pixel_color) {
   float dx;
   float dy;
   int xDirection; //1 is right 0 is left 2 is horizontal
@@ -461,7 +456,7 @@ void draw_line(int x, int y, int endX, int endY) {
     yDirection = 2;
   }
 
-  printf("dx,dy:%f,%f\n",dx,dy);
+  //printf("dx,dy:%f,%f\n",dx,dy);
 
   float up;
   float down;
@@ -470,57 +465,51 @@ void draw_line(int x, int y, int endX, int endY) {
 
   //up to the right
   if(xDirection == 1 && yDirection == 1) {
-	  printf("up to right");
 	  if(dy > dx) {
 	  	up = dx/dy;
 	  	for(int i = 0; i<=dy;i++) {
 	  		curX = curX + up;
 	  		curY = curY - 1;
-	  		VGA_box (curX,curY,curX,curY, 0xffffff);
+	  		VGA_box (curX,curY,curX,curY, pixel_color);
 	  		  }
 	  	}else {
 	  	up = dy/dx;
 	  	for(int i = 0; i<=dx;i++) {
-	  		printf("curX: %d\n",(int)curX);
 	  		curX = curX + 1;
 	  		curY = curY - up;
-	  		VGA_box (curX,curY,curX,curY, 0xffffff);
+	  		VGA_box (curX,curY,curX,curY, pixel_color);
 	  	}
 	 }
-  }else if(xDirection == 1 && yDirection == 0)
-  {//down to the right
+  }else if(xDirection == 1 && yDirection == 0) {
 	  if(dy > dx) {
 	  		  up = dx/dy;
 	  		  for(int i = 0; i<=dy;i++) {
 	  			  curX = curX + up;
 	  			  curY = curY + 1;
-	  			  VGA_box (curX,curY,curX,curY, 0xffffff);
+	  			  VGA_box (curX,curY,curX,curY, pixel_color);
 	  		  }
 	  	  }else {
 	  		  up = dy/dx;
 	  		  for(int i = 0; i<=dx;i++) {
-	  			  printf("curX: %d\n",(int)curX);
 	  			  curX = curX + 1;
 	  			  curY = curY + up;
-	  			  VGA_box (curX,curY,curX,curY, 0xffffff);
+	  			  VGA_box (curX,curY,curX,curY, pixel_color);
 	  		  }
 	  	  }
-  }else if(xDirection == 0 && yDirection == 1)
-  {//up to the left
+  }else if(xDirection == 0 && yDirection == 1) {
 	  if(dy > dx) {
 		  up = dx/dy;
 		  for(int i = 0; i<=dy;i++) {
 			  curX = curX - up;
 			  curY = curY - 1;
-			  VGA_box (curX,curY,curX,curY, 0xffffff);
+			  VGA_box (curX,curY,curX,curY, pixel_color);
 		  }
 	  }else {
 		  up = dy/dx;
 		  for(int i = 0; i<=dx;i++) {
-			  printf("curX: %d\n",(int)curX);
 			  curX = curX - 1;
 			  curY = curY - up;
-			  VGA_box (curX,curY,curX,curY, 0xffffff);
+			  VGA_box (curX,curY,curX,curY, pixel_color);
 		  }
 	  }
 
@@ -531,15 +520,14 @@ void draw_line(int x, int y, int endX, int endY) {
 	  		  for(int i = 0; i<=dy;i++) {
 	  			  curX = curX - up;
 	  			  curY = curY + 1;
-	  			  VGA_box (curX,curY,curX,curY, 0xffffff);
+	  			  VGA_box (curX,curY,curX,curY, pixel_color);
 	  		  }
 	  	  }else {
 	  		  up = dy/dx;
 	  		  for(int i = 0; i<=dx;i++) {
-	  			  printf("curX: %d\n",(int)curX);
 	  			  curX = curX - 1;
 	  			  curY = curY + up;
-	  			  VGA_box (curX,curY,curX,curY, 0xffffff);
+	  			  VGA_box (curX,curY,curX,curY, pixel_color);
 	  		  }
 	  	  }
   }
@@ -572,29 +560,14 @@ int main(void)
   VGA_text (56, 43, "Power: ");
   VGA_text (64, 43, "0  ");
   VGA_text (12, 23, "Measured distance: ");
-  VGA_text (60, 52, "Driving Autonomous");
-  VGA_text (10, 52, "Light ON ");
+  VGA_text (60, 3, "Driving Autonomous");
+  VGA_text (10, 3, "Lights ON ");
 
   VGA_box (0, 0, 319, 239, 0x00);           // clear the screen
-  circle(80, 120 , 70);
-  circle(240,120 , 70);
-  //circle(240,120 , 5);
-  //circle(240,120 , 50);
+  print_img("bg1.bmp",0,0);
+  //OSQPost(PwmQueue,120);
 
-  draw_object(125, 15, logo);
-  //draw_line(280,120,200,150);
-  //draw_line(20,10,50,50);
-  //draw_line(50,50,80,100);
-  //draw_line(300,200,20,20);
-  //draw_line(100,100,50,50);
-  //draw_line(280,130,240,120);
-  //draw_line(240,120,280,110);
-  //draw_line(240,120,280,70);
-  //draw_line(240,120,220,70);
-  //draw_line(240,120,220,170);
-  //draw_line(50,50,70,105);
-  //draw_line(60, 60,100,100);
-  //draw_line(50,50,100,60);
+
   OSStart();
   
   return 0; // this line will never reached
