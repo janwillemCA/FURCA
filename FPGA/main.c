@@ -56,11 +56,11 @@ void * PingRightMessages[50];
 void * PwmMessages[20];
 
 ALT_SEM(sem_RS232);
+
 float *speedMeterArray(int x, int y, int radius);
 
 /**
  * task to receive data from the keyboard
- *
  * @Mqueue puts data from keyboard in message queue
  */
 void taskKeyboard(void* pdata){
@@ -77,7 +77,6 @@ void taskKeyboard(void* pdata){
       decode_scancode(ps2,decode_mode,&buf,&ascii);
       if (*decode_mode != 6) {
           if (*decode_mode == 1) {
-              //alt_printf("KEY1: %c\n",ascii);
               sprintf(buffer, "Pressed key: %c", ascii);
               displayTextLCD(buffer);
               VGA_text (60, 4, buffer);
@@ -107,13 +106,10 @@ void taskKeyboard(void* pdata){
 /**
  * this task takes all data from the message queue and writes it to the RS232 port
  * this task reads all incoming data from the RS232 port
- *
  */
-
 void task_Send_Receive_Data(void* pdata){
   INT8U err;
   char *msg;
-
   char incomingData[50];
 
   FILE * fp;
@@ -137,7 +133,7 @@ void task_Send_Receive_Data(void* pdata){
               while (incomingData[pos] != '\0' && incomingData[pos] >= 'A' && incomingData[pos] <= 'Z') {
                   pos++;
                 }
-              char dD[10];             // dataDescription
+              char dD[10];             /* dataDescription */
               temp = 0;
               while (startPos < pos) {
                   dD[temp] = incomingData[startPos];
@@ -149,7 +145,7 @@ void task_Send_Receive_Data(void* pdata){
               while ((incomingData[pos] != '\0') && incomingData[pos] >= '0' && incomingData[pos] <= '9') {
                   pos++;
                 }
-              char d[10];             // data
+              char d[10];             /* data */
               temp = 0;
               while (startPos < pos) {
                   d[temp] = incomingData[startPos];
@@ -160,17 +156,14 @@ void task_Send_Receive_Data(void* pdata){
 
               if (dD[0] == 'L') {
                   int distanceLeft = atoi(d);
-                  // printf("%d\n", distanceLeft);
                   err = OSQPost(PingLeftQueue, distanceLeft);
                 }
               if (dD[0] == 'R') {
                   int distanceRight = atoi(d);
-                  //printf("%d\n", distanceRight);
                   err = OSQPost(PingRightQueue, distanceRight);
                 }
               if (dD[0] == 'V') {
                   int speed = atoi(d);
-                  //printf(speed);
                   OSQPost(PwmQueue, speed);
                 }
             }
@@ -185,18 +178,20 @@ void controlSpeedAnimation(void *pdata){
   INT8U err;
   int speed;
   float previousSpeed = 0;
-  //direction: 1 is up, 2 is down
+  
+  /* direction: 1 is up, 2 is down */
   int direction = 0;
   char buffer[MAX_BUFFER];
   int *outerCircle = speedMeterArray(241,122,43);
-  //amount of values stored in the array/2
+  
+  /* amount of values stored in the array/2 */
   int size = 350;
-  //index: at what place in the array are we? max size is at 0pwm. index 0 is at 255 pwm
+  
+  /* index: at what place in the array are we? max size is at 0pwm. index 0 is at 255 pwm */
   int index = size;
   float steps = 255/(size/5);
 
   while (1) {
-
       int s = OSQPend(PwmQueue, 1, &err);
       if (s != NULL) {
           speed = s;
@@ -204,22 +199,16 @@ void controlSpeedAnimation(void *pdata){
             speed = 0;
           }
         }
-
-
-      //printf("previousSpeed:%f\n",previousSpeed);
+		
       sprintf(buffer, "%d  ", speed);
       VGA_text (64, 43, buffer);
       if (speed > previousSpeed) {
-          //difference = speed - previousSpeed;
           direction = 1;
-
         }else if (speed < previousSpeed) {
-          //difference =  previousSpeed - speed;
           direction = 2;
         }else {
           direction = 0;
         }
-
       if (direction == 1) {
           index -= 4;
           previousSpeed += steps;
@@ -247,22 +236,20 @@ void controlPingOutput(void *pdata){
   int right;
   char buffer[MAX_BUFFER];
   while (1) {
-      // check right
+      /* check right */
       left = OSQPend(PingLeftQueue, 0, &err);
-      //printf("left %d\n", left);
       sprintf(buffer, "Left: %d  cm", left);
       VGA_text (8, 30, buffer);
       if (left < 50 && left > 0)
-        err = OSQPost(KeyboardQueue, 'H'); // send hold
+        err = OSQPost(KeyboardQueue, 'H'); /* send hold */
 
-      // check right
+      /* check right */
       right = OSQPend(PingRightQueue, 0, &err);
-      //printf("right %d\n", right);
       sprintf(buffer, "Right: %d  cm", right);
-
+	  
       VGA_text (21, 30, buffer);
       if (right < 50 && right > 0)
-        err = OSQPost(KeyboardQueue, 'H'); // send hold
+        err = OSQPost(KeyboardQueue, 'H'); /* send hold */
     }
 }
 
@@ -271,15 +258,13 @@ void controlPingOutput(void *pdata){
  *
  * @param data to display
  */
-
 void displayTextLCD(char * message){
-  // open the Character LCD port
+  /* open the Character LCD port */
 
   alt_up_character_lcd_dev * char_lcd_dev;
   char_lcd_dev = alt_up_character_lcd_open_dev(CHAR_LCD_16X2_NAME);
   if (char_lcd_dev == NULL)
     alt_printf("Error: could not open character LCD device\n");
-
 
   /* Initialise the character display */
   alt_up_character_lcd_init(char_lcd_dev);
@@ -289,10 +274,8 @@ void displayTextLCD(char * message){
   /* Write in the second row */
   alt_up_character_lcd_set_cursor_pos(char_lcd_dev, 0, 1);
 
-
   alt_up_character_lcd_string(char_lcd_dev, message);
 }
-
 
 /****************************************************************************************
 * Subroutine to send a string of text to the VGA monitor
@@ -315,20 +298,18 @@ void VGA_text(int x, int y, char * text_ptr){
 ****************************************************************************************/
 void VGA_box(int x1, int y1, int x2, int y2, short pixel_color){
   int offset, row, col;
-  volatile short * pixel_buffer = (short *) 0x08000000;   // VGA pixel buffer
+  volatile short * pixel_buffer = (short *) 0x08000000;   /* VGA pixel buffer */
 
   /* assume that the box coordinates are valid */
   for (row = y1; row <= y2; row++) {
       col = x1;
       while (col <= x2) {
           offset = (row << 9) + col;
-          *(pixel_buffer + offset) = pixel_color; // compute halfword address, set pixel
+          *(pixel_buffer + offset) = pixel_color; /* compute halfword address, set pixel */
           ++col;
         }
     }
 }
-
-
 
 float *speedMeterArray(int x0, int y0, int radius){
   int *array = malloc(sizeof(float)*400);
@@ -369,15 +350,19 @@ float *speedMeterArray(int x0, int y0, int radius){
       index += 2;
     }
 
-  //the below code is used to put the coörds in the correct order in the final array so you can loop through them.
+  /* the below code is used to put the coörds in the correct order in the final array so you can loop through them. */
   int finalIndex = 0;
-  //size is the same for all 8 arrays
+  
+  /* size is the same for all 8 arrays */
   int size = 0;
+  
   while (a2[size] != 0) {
       size++;
-    }
+  }
+  
   size = size-2;
-  //printf("size:%d\n",size);
+  
+  /*printf("size:%d\n",size); */
   for (int i = 0; i <= size; i++) {
       array[finalIndex] = a2[size-i];
       array[finalIndex+size] = a3[i];
@@ -385,7 +370,6 @@ float *speedMeterArray(int x0, int y0, int radius){
       array[finalIndex+size*3] = a5[i];
       array[finalIndex+size*4] = a6[size-i];
       array[finalIndex+size*5] = a7[i];
-      //printf("%d\n",a2[size-i]);
       finalIndex++;
     }
   return array;
@@ -396,7 +380,6 @@ void draw_object(int xpos, int ypos, const char sprite[36][67]){
       for (int spritey = 0; spritey < 36; spritey++) {
           switch (sprite[spritey][spritex]) {
             case 'c':
-              //nothing
               break;
             case 'b':
               VGA_box (xpos + spritex, ypos + spritey, xpos + spritex,ypos + spritey, 0xffffff);
@@ -405,8 +388,6 @@ void draw_object(int xpos, int ypos, const char sprite[36][67]){
         }
     }
 }
-
-
 
 void draw_line(int x, int y, int endX, int endY, short pixel_color) {
   float dx;
@@ -435,14 +416,12 @@ void draw_line(int x, int y, int endX, int endY, short pixel_color) {
       yDirection = 2;
     }
 
-  //printf("dx,dy:%f,%f\n",dx,dy);
-
   float up;
   float down;
   float curX = x;
   float curY = y;
 
-  //up to the right
+  /* up to the right */
   if (xDirection == 1 && yDirection == 1) {
       if (dy > dx) {
           up = dx/dy;
@@ -491,7 +470,6 @@ void draw_line(int x, int y, int endX, int endY, short pixel_color) {
               VGA_box (curX,curY,curX,curY, pixel_color);
             }
         }
-
     }else if (xDirection == 0 && yDirection == 0) {//down to the left
       if (dy > dx) {
           up = dx/dy;
@@ -509,24 +487,26 @@ void draw_line(int x, int y, int endX, int endY, short pixel_color) {
             }
         }
     }
-
-
 }
 
 int main(void){
 
+/* Message Queues */
   KeyboardQueue = OSQCreate(&KeyboardMessages[0], 20);                // Create message queue
   PingLeftQueue = OSQCreate(&PingLeftMessages[0], 20);                // Create message queue
   PingRightQueue = OSQCreate(&PingRightMessages[0], 20);                // Create message queue
   PwmQueue = OSQCreate(&PwmMessages[0], 20);
 
+/* Semaphores */
   ALT_SEM_CREATE(&sem_RS232, 1);
-
+  
+/* Create tasks */
   OSTaskCreateExt(taskKeyboard,NULL,(void *)&taskKeyboard_stk[TASK_STACKSIZE-1],taskKeyboard_PRIORITY,taskKeyboard_PRIORITY,taskKeyboard_stk,TASK_STACKSIZE, NULL,0);
   OSTaskCreateExt(task_Send_Receive_Data,NULL,(void *)&task_Send_Receive_Data_stk[TASK_STACKSIZE-1],task_Send_Receive_Data_PRIORITY,task_Send_Receive_Data_PRIORITY,task_Send_Receive_Data_stk,TASK_STACKSIZE,NULL,0);
   OSTaskCreateExt(controlPingOutput,NULL,(void *)&controlPingOutput_stk[TASK_STACKSIZE-1],controlPingOutput_PRIORITY,controlPingOutput_PRIORITY,controlPingOutput_stk,TASK_STACKSIZE,NULL,0);
   OSTaskCreateExt(controlSpeedAnimation,NULL,(void *)&controlSpeedAnimation_stk[TASK_STACKSIZE-1],controlSpeedAnimation_PRIORITY,controlSpeedAnimation_PRIORITY,controlSpeedAnimation_stk,TASK_STACKSIZE,NULL,0);
-  /*
+ 
+ /*
    * VGA Display
    */
   VGA_text (50, 40, "0");
@@ -540,10 +520,11 @@ int main(void){
   VGA_text (60, 3, "Driving Autonomous");
   VGA_text (10, 3, "Lights ON ");
 
-  VGA_box (0, 0, 319, 239, 0x00);           // clear the screen
+  /* Clear screen */
+  VGA_box (0, 0, 319, 239, 0x00);       
+  
+  /* Background image */
   print_img("bg1.bmp",0,0);
-  //OSQPost(PwmQueue,120);
-
 
   OSStart();
 

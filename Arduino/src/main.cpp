@@ -16,7 +16,6 @@
 #define LEFT 8
 #define RIGHT 9
 
-//#define PWMDRIVEVALUE 120
 #define PWMSTEERVALUE 255
 #define TRIGPINR 11 // right seen from driver position
 #define ECHOPINR 10
@@ -89,19 +88,17 @@ void setup() {
   pinMode(ECHOPINR, INPUT);
   pinMode(A0,OUTPUT);
   digitalWrite(A0,HIGH);
-
-
-  //timer initialization
+  
+  /* timer initialization */
   Timer1.initialize(35000);
 
   Timer1.attachInterrupt(timerInterrupt);
 }
 
-
 int testLcounter = 0;
 int testRcounter = 0;
-void loop(){
 
+void loop(){
   digitalWrite(2, HIGH);
   digitalWrite(3, HIGH);
 
@@ -235,22 +232,10 @@ void timerInterrupt() {
       processPing();
     }
 
-//Serial.println(steeringCounter);
-//Serial.println(steeringStart);
   timingControl(&forwardsStart,&forwardsCounter, 30, 1);
   timingControl(&backwardsStart,&backwardsCounter, 30, 1);
   timingControl(&steeringStart,&steeringCounter, 30, 2);
   timingControl(&brakeStart,&brakeCounter, 8,3);
-
-  // if(forwardsStart == true){
-  //   forwardsCounter++;
-  // }
-  //
-  // if(forwardsCounter == 10){
-  //   analogWrite(PWMDRIVE, PWMDRIVEVALUE);
-  //   forwardsCounter = 0;
-  //   forwardsStart = false;
-  // }
 }
 
 void improveData(int distance, int sensor) {
@@ -261,7 +246,6 @@ void improveData(int distance, int sensor) {
       maximumDifference = PWMDRIVEVALUE / 7;
     }
 
-  //sensor 0 = left, sensor 1 = right, sensor 2 = empty
   if (distance <= 120) {
       if (measureCnt[sensor] == 0) {
           lastMeasure[sensor] = distance;
@@ -273,33 +257,23 @@ void improveData(int distance, int sensor) {
             } else {
               measureDifference[sensor] = lastMeasure[sensor] - distance;
             }
-
-          //Serial.print("lastMeasurediff sensor ");Serial.print(sensor);Serial.print(":");
-          //Serial.println(measureDifference[sensor]);
-
           if (measureDifference[sensor] <= maximumDifference) {
               lastMeasure[sensor] = distance;
               measureCnt[sensor]++;
             } else if (measureDifference[sensor] > 10) {
               measureCnt[sensor] = 0;
-              //Serial.println("set to 0");
             }
-
         }
 
       if (measureCnt[sensor] == 4) {
           if (distance != 0) {
               if (sensor == 0) {
-                  //Serial.print("left: ");
                   sprintf(stringL,"L%d",distance);
                   distanceL = distance;
-                  //Serial.println(stringL);
                   BTserial.print(stringL);
                 }else if (sensor == 1) {
-                  //Serial.print("right: ");
                   sprintf(stringR,"R%d",distance);
                   distanceR = distance;
-                  //Serial.println(stringR);
                   BTserial.print(stringR);
                 }else {
                 }
@@ -314,17 +288,17 @@ void timingControl(bool *timingBool, int *counter, int ticks, int motor) {
   if (*timingBool == 1) {
       *counter = *counter +1;
       if (*counter == ticks) {
-          //what to do when timer runs out for different motors
+          /* what to do when timer runs out for different motors */
           if (motor == 1) {
-              //forwards/backwards motor
+              /* forwards/backwards motor */
               analogWrite(PWMDRIVE, PWMDRIVEVALUE);
               sprintf(stringPWM,"V%d",PWMDRIVEVALUE);
               BTserial.write(stringPWM);
             }else if (motor == 2) {
-              //steering motor
+              /* steering motor */
               center();
             }else if (motor == 3) {
-              //brake motor
+              /* brake motor */
               analogWrite(PWMDRIVE, PWMDRIVEVALUE);
               sprintf(stringPWM,"V%d",0);
               BTserial.write(stringPWM);
@@ -338,7 +312,7 @@ void timingControl(bool *timingBool, int *counter, int ticks, int motor) {
 
 void processPing() {
   if (switchPing == true) {
-      //rightsensor
+      /* rightsensor */
       long durationR, distanceR;
       digitalWrite(TRIGPINR, LOW);
       delayMicroseconds(2);
@@ -352,7 +326,7 @@ void processPing() {
       improveData(distanceR, 1);
 
     } else if (switchPing == false) {
-      //leftsensor
+      /* leftsensor */
       long durationL, distanceL;
       digitalWrite(TRIGPINL, LOW);
       delayMicroseconds(2);
@@ -362,7 +336,6 @@ void processPing() {
       durationL = pulseIn(ECHOPINL, HIGH);
       distanceL = (durationL/2) / 29.1;
       switchPing = true;
-      //Serial.println(distanceL);
       improveData(distanceL, 0);
     }
 }
