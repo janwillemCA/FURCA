@@ -170,7 +170,7 @@ void task_Send_Receive_Data(void* pdata){
                 }
               if (dD[0] == 'V') {
                   int speed = atoi(d);
-                  printf(speed);
+                  //printf(speed);
                   OSQPost(PwmQueue, speed);
                 }
             }
@@ -183,7 +183,7 @@ void task_Send_Receive_Data(void* pdata){
 
 void controlSpeedAnimation(void *pdata){
   INT8U err;
-  int speed = 0;
+  int speed;
   float previousSpeed = 0;
   //direction: 1 is up, 2 is down
   int direction = 0;
@@ -197,11 +197,15 @@ void controlSpeedAnimation(void *pdata){
 
   while (1) {
 
-      int s = (int)OSQPend(PwmQueue, 1, &err);
+      int s = OSQPend(PwmQueue, 1, &err);
       if (s != NULL) {
           speed = s;
+          if(s == 1) {
+            speed = 0;
+          }
         }
-      printf("test:%d\n",speed);
+
+
       //printf("previousSpeed:%f\n",previousSpeed);
       sprintf(buffer, "%d  ", speed);
       VGA_text (64, 43, buffer);
@@ -220,8 +224,10 @@ void controlSpeedAnimation(void *pdata){
           index -= 4;
           previousSpeed += steps;
         }else if (direction == 2) {
+        if(index <= 345){
           index += 4;
           previousSpeed -= steps;
+        }
         }
       draw_line((int)outerCircle[index],(int)outerCircle[index+1],242,125,0xffffff);
       if (index <= 345 && index >= 4) {
@@ -243,7 +249,7 @@ void controlPingOutput(void *pdata){
   while (1) {
       // check right
       left = OSQPend(PingLeftQueue, 0, &err);
-      printf("left %d\n", left);
+      //printf("left %d\n", left);
       sprintf(buffer, "Left: %d  cm", left);
       VGA_text (8, 30, buffer);
       if (left < 50 && left > 0)
@@ -251,7 +257,7 @@ void controlPingOutput(void *pdata){
 
       // check right
       right = OSQPend(PingRightQueue, 0, &err);
-      printf("right %d\n", right);
+      //printf("right %d\n", right);
       sprintf(buffer, "Right: %d  cm", right);
 
       VGA_text (21, 30, buffer);
@@ -371,7 +377,7 @@ float *speedMeterArray(int x0, int y0, int radius){
       size++;
     }
   size = size-2;
-  printf("size:%d\n",size);
+  //printf("size:%d\n",size);
   for (int i = 0; i <= size; i++) {
       array[finalIndex] = a2[size-i];
       array[finalIndex+size] = a3[i];
@@ -379,7 +385,7 @@ float *speedMeterArray(int x0, int y0, int radius){
       array[finalIndex+size*3] = a5[i];
       array[finalIndex+size*4] = a6[size-i];
       array[finalIndex+size*5] = a7[i];
-      printf("%d\n",a2[size-i]);
+      //printf("%d\n",a2[size-i]);
       finalIndex++;
     }
   return array;
