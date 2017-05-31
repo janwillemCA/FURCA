@@ -178,15 +178,15 @@ void controlSpeedAnimation(void *pdata){
   INT8U err;
   int speed;
   float previousSpeed = 0;
-  
+
   /* direction: 1 is up, 2 is down */
   int direction = 0;
   char buffer[MAX_BUFFER];
   int *outerCircle = speedMeterArray(241,122,43);
-  
+
   /* amount of values stored in the array/2 */
   int size = 350;
-  
+
   /* index: at what place in the array are we? max size is at 0pwm. index 0 is at 255 pwm */
   int index = size;
   float steps = 255/(size/5);
@@ -199,9 +199,9 @@ void controlSpeedAnimation(void *pdata){
             speed = 0;
           }
         }
-		
+
       sprintf(buffer, "%d  ", speed);
-      VGA_text (64, 43, buffer);
+      VGA_text (64, 40, buffer);
       if (speed > previousSpeed) {
           direction = 1;
         }else if (speed < previousSpeed) {
@@ -238,15 +238,15 @@ void controlPingOutput(void *pdata){
   while (1) {
       /* check right */
       left = OSQPend(PingLeftQueue, 0, &err);
-      sprintf(buffer, "Left: %d  cm", left);
+      sprintf(buffer, "Left: %d  ", left);
       VGA_text (8, 30, buffer);
       if (left < 50 && left > 0)
         err = OSQPost(KeyboardQueue, 'H'); /* send hold */
 
       /* check right */
       right = OSQPend(PingRightQueue, 0, &err);
-      sprintf(buffer, "Right: %d  cm", right);
-	  
+      sprintf(buffer, "Right: %d  ", right);
+
       VGA_text (21, 30, buffer);
       if (right < 50 && right > 0)
         err = OSQPost(KeyboardQueue, 'H'); /* send hold */
@@ -352,16 +352,16 @@ float *speedMeterArray(int x0, int y0, int radius){
 
   /* the below code is used to put the coörds in the correct order in the final array so you can loop through them. */
   int finalIndex = 0;
-  
+
   /* size is the same for all 8 arrays */
   int size = 0;
-  
+
   while (a2[size] != 0) {
       size++;
   }
-  
+
   size = size-2;
-  
+
   /*printf("size:%d\n",size); */
   for (int i = 0; i <= size; i++) {
       array[finalIndex] = a2[size-i];
@@ -499,30 +499,29 @@ int main(void){
 
 /* Semaphores */
   ALT_SEM_CREATE(&sem_RS232, 1);
-  
+
 /* Create tasks */
   OSTaskCreateExt(taskKeyboard,NULL,(void *)&taskKeyboard_stk[TASK_STACKSIZE-1],taskKeyboard_PRIORITY,taskKeyboard_PRIORITY,taskKeyboard_stk,TASK_STACKSIZE, NULL,0);
   OSTaskCreateExt(task_Send_Receive_Data,NULL,(void *)&task_Send_Receive_Data_stk[TASK_STACKSIZE-1],task_Send_Receive_Data_PRIORITY,task_Send_Receive_Data_PRIORITY,task_Send_Receive_Data_stk,TASK_STACKSIZE,NULL,0);
   OSTaskCreateExt(controlPingOutput,NULL,(void *)&controlPingOutput_stk[TASK_STACKSIZE-1],controlPingOutput_PRIORITY,controlPingOutput_PRIORITY,controlPingOutput_stk,TASK_STACKSIZE,NULL,0);
   OSTaskCreateExt(controlSpeedAnimation,NULL,(void *)&controlSpeedAnimation_stk[TASK_STACKSIZE-1],controlSpeedAnimation_PRIORITY,controlSpeedAnimation_PRIORITY,controlSpeedAnimation_stk,TASK_STACKSIZE,NULL,0);
- 
+
  /*
    * VGA Display
    */
-  VGA_text (50, 40, "0");
-  VGA_text (69, 40, "260");
-  VGA_text (58, 15, "130");
-  VGA_text (45, 28, "65");
-  VGA_text (73, 28, "195");
-  VGA_text (56, 43, "Power: ");
-  VGA_text (64, 43, "0  ");
+  VGA_text (52, 39, "0");
+  VGA_text (67, 39, "260");
+  VGA_text (59, 19, "130");
+  VGA_text (49, 31, "65");
+  VGA_text (70, 31, "195");
+  VGA_text (56, 40, "Power: ");
   VGA_text (12, 23, "Measured distance: ");
   VGA_text (60, 3, "Driving Autonomous");
   VGA_text (10, 3, "Lights ON ");
 
   /* Clear screen */
-  VGA_box (0, 0, 319, 239, 0x00);       
-  
+  VGA_box (0, 0, 319, 239, 0x00);
+
   /* Background image */
   print_img("bg1.bmp",0,0);
 
